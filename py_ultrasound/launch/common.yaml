@@ -1,0 +1,11 @@
+#config/common.yaml
+
+---
+topic_Ultrasound:
+    nodeName : "ultrasound_publisher_node"
+    topicName : "ultrasound_0"
+    publishInterval : 0.1 #primary
+
+node_prop:
+    nodeName : "ultrasound_0_node" #primary
+    namespace : "V0"

@@ -1,0 +1,21 @@
+#config/common.yaml
+
+---
+topic_Webcam:
+    nodeName : "webcam_0_node"
+    topicName : "webcam_0"
+    publishInterval_s : 0.033 # Unused
+    width : 1920 # Publish resolution
+    height : 1080
+
+node_prop:
+    nodeName : "webcam_0_node" # Primary
+    namespace : "V0"
+    
+camera_prop:
+    operationMode : "send" # "send" or "recv"
+    cap_id : 0
+    fps : 30.0
+    width : 640 # Input resolution
+    height : 480
+    use_color : True

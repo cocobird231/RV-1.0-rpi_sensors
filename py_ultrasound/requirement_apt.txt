@@ -1,0 +1,2 @@
+rpi.gpio-common \
+python3-rpi.gpio

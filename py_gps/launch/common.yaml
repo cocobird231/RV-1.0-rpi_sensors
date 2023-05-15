@@ -1,0 +1,19 @@
+#config/common.yaml
+
+---
+topic_GPS:
+    nodeName : "gps_0_node"
+    topicName : "gps_0"
+    publishInterval : 0.5
+
+node_prop:
+    nodeName : "gps_0_node" #primary
+    namespace : "V0"
+
+GPS_prop:
+    module : "ZED-F9P" # "M8Q" or "ZED-F9P"
+    caster : "rtk2go.com" # "landsd-gncaster.realtime.data.gov.hk"
+    port : 2101
+    mountpoint : "/geec02" # "/T430_32"
+    username : "123@gmail.com" # Not necessary
+    password : "none" # Not necessary

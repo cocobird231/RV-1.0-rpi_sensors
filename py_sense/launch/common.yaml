@@ -1,0 +1,16 @@
+#config/common.yaml
+
+---
+topic_IMU:
+    nodeName : "imu_0_node"
+    topicName : "imu_0"
+    publishInterval : 0.05 #primary
+
+topic_ENV:
+    nodeName : "environment_0_node"
+    topicName : "environment_0"
+    publishInterval : 0.05
+
+node_prop:
+    nodeName : "sense_0_node" #primary
+    namespace : "V0"

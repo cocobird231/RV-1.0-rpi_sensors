@@ -1,0 +1,24 @@
+#config/common.yaml
+
+# RF send mode subscribe wheel status from control server then send it via RF
+# RF recv mode receive wheel status via RF then publish to control server
+---
+RF_prop:
+    operationMode : "send" # send, recv
+    address : "1SNSR"
+    protocol : 0x01
+    channel : 100
+    dataRate : 250 # kbps (unuse)
+
+topic_RFCommSend: # Used if send mode
+    nodeName : "rfcommsend_subscriber_node" # primary
+    topicName : "rfcomm_0"
+
+topic_RFCommRecv: # Used if recv mode
+    nodeName : "rfcommrecv_publisher_node" # primary
+    topicName : "rfcomm_1"
+    publishInterval : 0.1 # Unuse
+
+node_prop:
+    nodeName : "rfcomm_node"
+    namespace : "V0"
