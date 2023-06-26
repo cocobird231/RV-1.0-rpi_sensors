@@ -8,10 +8,6 @@ topic_Webcam:
     width : 1920 # Publish resolution
     height : 1080
 
-node_prop:
-    nodeName : "webcam_0_node" # Primary
-    namespace : "V0"
-    
 camera_prop:
     operationMode : "send" # "send" or "recv"
     cap_id : 0
@@ -19,3 +15,13 @@ camera_prop:
     width : 640 # Input resolution
     height : 480
     use_color : True
+
+# Settings for Params class under vehicle_interfaces/params.h
+# The nodeName describes the name of node, the name will be automatically formed as "<nodeName>_<id>_node"
+generic_prop:
+    namespace : "V0"
+    nodeName : "webcam"
+    id : 0 # Frequently changed parameter
+    qosService : "qos_0"
+    safetyService : "safety_0"
+    timesyncService : "timesync_0"

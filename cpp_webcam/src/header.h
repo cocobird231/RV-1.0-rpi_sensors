@@ -4,12 +4,14 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "vehicle_interfaces/msg/image.hpp"
+#include "vehicle_interfaces/params.h"
 #include "vehicle_interfaces/timesync.h"
 
 #include <opencv2/opencv.hpp>
 
+#define TS_MODE
 
-class Params : public rclcpp::Node
+class Params : public vehicle_interfaces::GenericParams
 {
 public:
     std::string topic_Webcam_nodeName = "webcam_publisher_node";
@@ -17,7 +19,6 @@ public:
     float topic_Webcam_pubInterval_s = 0.03;
     int topic_Webcam_width = 1920;
     int topic_Webcam_height = 1080;
-    std::string mainNodeName = "webcam_node";
     std::string operationMode = "send";
     int camera_cap_id = 0;
     float camera_fps = 30.0;
@@ -33,7 +34,6 @@ private:
         this->get_parameter("topic_Webcam_pubInterval_s", this->topic_Webcam_pubInterval_s);
         this->get_parameter("topic_Webcam_width", this->topic_Webcam_width);
         this->get_parameter("topic_Webcam_height", this->topic_Webcam_height);
-        this->get_parameter("mainNodeName", this->mainNodeName);
         this->get_parameter("operationMode", this->operationMode);
         this->get_parameter("camera_cap_id", this->camera_cap_id);
         this->get_parameter("camera_fps", this->camera_fps);
@@ -43,14 +43,13 @@ private:
     }
 
 public:
-    Params(std::string nodeName) : Node(nodeName)
+    Params(std::string nodeName) : vehicle_interfaces::GenericParams(nodeName)
     {
         this->declare_parameter<std::string>("topic_Webcam_nodeName", this->topic_Webcam_nodeName);
         this->declare_parameter<std::string>("topic_Webcam_topicName", this->topic_Webcam_topicName);
         this->declare_parameter<float>("topic_Webcam_pubInterval_s", this->topic_Webcam_pubInterval_s);
         this->declare_parameter<int>("topic_Webcam_width", this->topic_Webcam_width);
         this->declare_parameter<int>("topic_Webcam_height", this->topic_Webcam_height);
-        this->declare_parameter<std::string>("mainNodeName", this->mainNodeName);
         this->declare_parameter<std::string>("operationMode", this->operationMode);
         this->declare_parameter<int>("camera_cap_id", this->camera_cap_id);
         this->declare_parameter<float>("camera_fps", this->camera_fps);
@@ -61,18 +60,27 @@ public:
     }
 };
 
-
+#ifdef TS_MODE
+class RGBImagePublisher : public TimeSyncNode
+#else
 class RGBImagePublisher : public rclcpp::Node
+#endif
 {
 private:
+    std::shared_ptr<Params> params;
     rclcpp::Publisher<vehicle_interfaces::msg::Image>::SharedPtr pub_;
     std::string nodeName_;
 
 public:
-    RGBImagePublisher(const std::string& nodeName, const std::string& topicName) : rclcpp::Node(nodeName)
+    RGBImagePublisher(const std::shared_ptr<Params>& params) : 
+#ifdef TS_MODE
+        TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
+#endif
+        rclcpp::Node(params->nodeName), 
+        params(params)
     {
-        this->nodeName_ = nodeName;
-        this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(topicName, 10);
+        this->nodeName_ = params->nodeName;
+        this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, 10);
     }
 
     void pubImage(const std::vector<uchar>& dataVec, const cv::Size& sz)
@@ -83,8 +91,16 @@ public:
         msg.header.device_type = vehicle_interfaces::msg::Header::DEVTYPE_IMAGE;
         msg.header.device_id = this->nodeName_;
         msg.header.frame_id = frame_id++;
+#ifdef TS_MODE
+        msg.header.stamp_type = this->getTimestampType();
+        msg.header.stamp = this->getTimestamp();
+        msg.header.stamp_offset = this->getCorrectDuration();
+#else
         msg.header.stamp_type = vehicle_interfaces::msg::Header::STAMPTYPE_NONE_UTC_SYNC;
         msg.header.stamp = this->get_clock()->now();
+        msg.header.stamp_offset = rclcpp::Duration(0, 0);
+#endif
+        msg.header.ref_publish_time_ms = this->params->topic_Webcam_pubInterval_s * 1000.0;
 
         msg.format_type = msg.FORMAT_JPEG;
         msg.width = sz.width;
@@ -94,7 +110,11 @@ public:
     }
 };
 
+#ifdef TS_MODE
+class RGBImageSubscriber : public TimeSyncNode
+#else
 class RGBImageSubscriber : public rclcpp::Node
+#endif
 {
 private:
     rclcpp::Subscription<vehicle_interfaces::msg::Image>::SharedPtr subscription_;
@@ -128,11 +148,15 @@ private:
     }
 
 public:
-    RGBImageSubscriber(const std::string& nodeName, const cv::Mat& initMat, const std::string& topicName) : rclcpp::Node(nodeName)
+    RGBImageSubscriber(const std::shared_ptr<Params>& params, const cv::Mat& initMat) : 
+#ifdef TS_MODE
+        TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
+#endif
+        rclcpp::Node(params->nodeName)
     {
         this->setInitMat(initMat);
-        this->nodeName_ = nodeName;
-        this->subscription_ = this->create_subscription<vehicle_interfaces::msg::Image>(topicName, 
+        this->nodeName_ = params->nodeName;
+        this->subscription_ = this->create_subscription<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, 
             10, std::bind(&RGBImageSubscriber::_topic_callback, this, std::placeholders::_1));
     }
 

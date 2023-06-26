@@ -13,7 +13,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="cpp_webcam",
-            node_namespace=data['node_prop']['namespace'],
+            node_namespace=data['generic_prop']['namespace'],
             node_executable="pub",
             output="screen",
             emulate_tty=True,
@@ -24,13 +24,20 @@ def generate_launch_description():
                     "topic_Webcam_pubInterval_s" : data['topic_Webcam']['publishInterval_s'], 
                     "topic_Webcam_width" : data['topic_Webcam']['width'], 
                     "topic_Webcam_height" : data['topic_Webcam']['height'], 
-                    "mainNodeName" : data['node_prop']['nodeName'], 
                     "operationMode" : data['camera_prop']['operationMode'], 
                     "camera_cap_id" : data['camera_prop']['cap_id'], 
                     "camera_fps" : data['camera_prop']['fps'], 
                     "camera_width" : data['camera_prop']['width'], 
                     "camera_height" : data['camera_prop']['height'], 
                     "camera_use_color" : data['camera_prop']['use_color'], 
+
+                    # Settings for Params class under vehicle_interfaces/params.h
+                    # Do not change the settings rashly
+                    "nodeName" : data['generic_prop']['nodeName'], 
+                    "id" : data['generic_prop']['id'], 
+                    "qosService" : data['generic_prop']['qosService'], 
+                    "safetyService" : data['generic_prop']['safetyService'], 
+                    "timesyncService" : data['generic_prop']['timesyncService'], 
                 }
             ]
         )

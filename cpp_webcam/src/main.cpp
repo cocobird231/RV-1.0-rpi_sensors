@@ -2,7 +2,7 @@
 
 int main_send(std::shared_ptr<Params> params)
 {
-    auto webcam_publisher = std::make_shared<RGBImagePublisher>(params->topic_Webcam_nodeName, params->topic_Webcam_topicName);
+    auto webcam_publisher = std::make_shared<RGBImagePublisher>(params);
     
     cv::VideoCapture cap;
     cap.open(params->camera_cap_id);
@@ -57,7 +57,7 @@ int main_send(std::shared_ptr<Params> params)
 int main_recv(std::shared_ptr<Params> params)
 {
     cv::Mat initMat = cv::Mat(360, 640, CV_8UC3, cv::Scalar(100));
-    auto webcam_subscriber = std::make_shared<RGBImageSubscriber>(params->topic_Webcam_nodeName, initMat, params->topic_Webcam_topicName);
+    auto webcam_subscriber = std::make_shared<RGBImageSubscriber>(params, initMat);
     std::thread subTh = std::thread(SpinNode, webcam_subscriber, "webcam_subscriberTh");
 
     cv::Mat src, dst;
