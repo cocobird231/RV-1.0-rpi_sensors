@@ -13,7 +13,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="py_gps",
-            namespace=data['node_prop']['namespace'],
+            namespace=data['generic_prop']['namespace'],
             executable="pub",
             output="screen",
             emulate_tty=True,
@@ -22,13 +22,20 @@ def generate_launch_description():
                     "topic_GPS_nodeName" : data['topic_GPS']['nodeName'], 
                     "topic_GPS_topicName" : data['topic_GPS']['topicName'], 
                     "topic_GPS_pubInterval" : data['topic_GPS']['publishInterval'], 
-                    "mainNodeName" : data['node_prop']['nodeName'], 
                     "module" : data['GPS_prop']['module'], 
                     "caster" : data['GPS_prop']['caster'], 
                     "port" : data['GPS_prop']['port'], 
                     "mountpoint" : data['GPS_prop']['mountpoint'], 
                     "username" : data['GPS_prop']['username'], 
                     "password" : data['GPS_prop']['password'], 
+
+                    # Settings for Params class under vehicle_interfaces/params.h
+                    # Do not change the settings rashly
+                    "nodeName" : data['generic_prop']['nodeName'], 
+                    "id" : data['generic_prop']['id'], 
+                    "qosService" : data['generic_prop']['qosService'], 
+                    "safetyService" : data['generic_prop']['safetyService'], 
+                    "timesyncService" : data['generic_prop']['timesyncService'], 
                 }
             ]
         )

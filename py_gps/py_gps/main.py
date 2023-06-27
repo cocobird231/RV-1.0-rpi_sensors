@@ -15,8 +15,9 @@ class Params(Node):
         self.topic_GPS_nodeName = 'gps_publisher_node'
         self.topic_GPS_topicName = 'topic_GPS'
         self.topic_GPS_pubInterval = 0.5
-        self.mainNodeName = 'gps_node'
-        self.module = 'M8Q'
+        self.nodeName = 'gps_0_node'
+        self.id = 0
+        self.module = 'ZED-F9P'
         self.caster = ''
         self.port = 2101
         self.mountpoint = ''
@@ -26,7 +27,8 @@ class Params(Node):
         self.declare_parameter('topic_GPS_nodeName', self.topic_GPS_nodeName)
         self.declare_parameter('topic_GPS_topicName', self.topic_GPS_topicName)
         self.declare_parameter('topic_GPS_pubInterval', self.topic_GPS_pubInterval)
-        self.declare_parameter('mainNodeName', self.mainNodeName)
+        self.declare_parameter('nodeName', self.nodeName)
+        self.declare_parameter('id', self.id)
         self.declare_parameter('module', self.module)
         self.declare_parameter('caster', self.caster)
         self.declare_parameter('port', self.port)
@@ -39,7 +41,8 @@ class Params(Node):
         self.topic_GPS_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_nodeName').get_parameter_value())
         self.topic_GPS_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_topicName').get_parameter_value())
         self.topic_GPS_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_pubInterval').get_parameter_value())
-        self.mainNodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('mainNodeName').get_parameter_value())
+        self.nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('nodeName').get_parameter_value())
+        self.id = rclpy.parameter.parameter_value_to_python(self.get_parameter('id').get_parameter_value())
         self.module = rclpy.parameter.parameter_value_to_python(self.get_parameter('module').get_parameter_value())
         self.caster = rclpy.parameter.parameter_value_to_python(self.get_parameter('caster').get_parameter_value())
         self.port = rclpy.parameter.parameter_value_to_python(self.get_parameter('port').get_parameter_value())
@@ -47,11 +50,13 @@ class Params(Node):
         self.username = rclpy.parameter.parameter_value_to_python(self.get_parameter('username').get_parameter_value())
         self.password = rclpy.parameter.parameter_value_to_python(self.get_parameter('password').get_parameter_value())
 
+        self.nodeName += '_' + str(self.id) + '_node'
+
 
 class GPSPublisher(Node):
     def __init__(self, params):
-        super().__init__(params.topic_GPS_nodeName)
-        self.nodeName_ = params.topic_GPS_nodeName
+        super().__init__(params.nodeName)
+        self.nodeName_ = params.nodeName
         self.publisher_ = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
         self.frame_id_ = 0
         timer_period = params.topic_GPS_pubInterval  # seconds
