@@ -14,17 +14,16 @@ def generate_launch_description():
         Node(
             package="cpp_webcam",
             node_namespace=data['generic_prop']['namespace'],
-            node_executable="pub",
+            node_executable=data['launch_node'],
             output="screen",
             emulate_tty=True,
             parameters=[
                 {
                     "topic_Webcam_nodeName" : data['topic_Webcam']['nodeName'], 
-                    "topic_Webcam_topicName" : data['topic_Webcam']['topicName'], 
+                    "topic_Webcam_topicName" : data['topic_Webcam']['topicName'] + '_' + str(data['generic_prop']['id']), 
                     "topic_Webcam_pubInterval_s" : data['topic_Webcam']['publishInterval_s'], 
                     "topic_Webcam_width" : data['topic_Webcam']['width'], 
                     "topic_Webcam_height" : data['topic_Webcam']['height'], 
-                    "operationMode" : data['camera_prop']['operationMode'], 
                     "camera_cap_id" : data['camera_prop']['cap_id'], 
                     "camera_fps" : data['camera_prop']['fps'], 
                     "camera_width" : data['camera_prop']['width'], 
@@ -33,11 +32,13 @@ def generate_launch_description():
 
                     # Settings for Params class under vehicle_interfaces/params.h
                     # Do not change the settings rashly
-                    "nodeName" : data['generic_prop']['nodeName'], 
+                    "nodeName" : data['generic_prop']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
                     "id" : data['generic_prop']['id'], 
                     "qosService" : data['generic_prop']['qosService'], 
                     "safetyService" : data['generic_prop']['safetyService'], 
                     "timesyncService" : data['generic_prop']['timesyncService'], 
+                    "timesyncInterval_ms" : data['generic_prop']['timesyncInterval_ms'], 
+                    "timesyncAccuracy_ms" : data['generic_prop']['timesyncAccuracy_ms'], 
                 }
             ]
         )

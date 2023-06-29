@@ -1,7 +1,9 @@
 #include "header.h"
 
-int main_send(std::shared_ptr<Params> params)
+int main(int argc, char** argv)
 {
+    rclcpp::init(argc, argv);
+    auto params = std::make_shared<Params>("webcam_params_node");
     auto webcam_publisher = std::make_shared<RGBImagePublisher>(params);
     
     cv::VideoCapture cap;
@@ -51,45 +53,6 @@ int main_send(std::shared_ptr<Params> params)
         cv::waitKey(1);
     }
     cap.release();
-    return EXIT_SUCCESS;
-}
-
-int main_recv(std::shared_ptr<Params> params)
-{
-    cv::Mat initMat = cv::Mat(360, 640, CV_8UC3, cv::Scalar(100));
-    auto webcam_subscriber = std::make_shared<RGBImageSubscriber>(params, initMat);
-    std::thread subTh = std::thread(SpinNode, webcam_subscriber, "webcam_subscriberTh");
-
-    cv::Mat src, dst;
-    src = initMat.clone();
-    dst = initMat.clone();
-    WorkingRate wr(1000);
-    wr.start();
-    while (1)
-    {
-        if (webcam_subscriber->getRecvMat_clone(src))
-        {
-            dst = src.clone();
-            wr.addOneCnt();
-        }
-        cv::Mat out = dst.clone();
-        cv::resize(out, out, cv::Size(640, 360));
-        cv::putText(out, "fps:" + std::to_string((int)wr.getRate()), cv::Point(10, out.rows - 10), 1, 4, cv::Scalar(0, 255, 255), 2);
-        cv::imshow("dst", out);
-        cv::waitKey(1);
-    }
-    subTh.join();
-    return EXIT_SUCCESS;
-}
-
-int main(int argc, char** argv)
-{
-    rclcpp::init(argc, argv);
-    auto params = std::make_shared<Params>("webcam_params_node");
-    if (params->operationMode == "send")
-        main_send(params);
-    else if (params->operationMode == "recv")
-        main_recv(params);
     rclcpp::shutdown();
     return EXIT_SUCCESS;
 }

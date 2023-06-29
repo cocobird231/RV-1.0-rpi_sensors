@@ -34,15 +34,22 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
 
 ## Build
-add_executable(pub src/main.cpp)
+add_executable(pub src/pub.cpp)
 ament_target_dependencies(pub rclcpp vehicle_interfaces)
 target_link_libraries(pub
+  ${OpenCV_LIBRARIES}
+)
+
+add_executable(sub src/sub.cpp)
+ament_target_dependencies(sub rclcpp vehicle_interfaces)
+target_link_libraries(sub
   ${OpenCV_LIBRARIES}
 )
 
 ## Install
 install(TARGETS
   pub
+  sub
   DESTINATION lib/${PROJECT_NAME}
 )
 

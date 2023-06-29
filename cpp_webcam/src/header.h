@@ -19,7 +19,6 @@ public:
     float topic_Webcam_pubInterval_s = 0.03;
     int topic_Webcam_width = 1920;
     int topic_Webcam_height = 1080;
-    std::string operationMode = "send";
     int camera_cap_id = 0;
     float camera_fps = 30.0;
     int camera_width = 1920;
@@ -34,7 +33,6 @@ private:
         this->get_parameter("topic_Webcam_pubInterval_s", this->topic_Webcam_pubInterval_s);
         this->get_parameter("topic_Webcam_width", this->topic_Webcam_width);
         this->get_parameter("topic_Webcam_height", this->topic_Webcam_height);
-        this->get_parameter("operationMode", this->operationMode);
         this->get_parameter("camera_cap_id", this->camera_cap_id);
         this->get_parameter("camera_fps", this->camera_fps);
         this->get_parameter("camera_width", this->camera_width);
@@ -50,7 +48,6 @@ public:
         this->declare_parameter<float>("topic_Webcam_pubInterval_s", this->topic_Webcam_pubInterval_s);
         this->declare_parameter<int>("topic_Webcam_width", this->topic_Webcam_width);
         this->declare_parameter<int>("topic_Webcam_height", this->topic_Webcam_height);
-        this->declare_parameter<std::string>("operationMode", this->operationMode);
         this->declare_parameter<int>("camera_cap_id", this->camera_cap_id);
         this->declare_parameter<float>("camera_fps", this->camera_fps);
         this->declare_parameter<int>("camera_width", this->camera_width);

@@ -1,15 +1,16 @@
 #config/common.yaml
 
 ---
+launch_node : "pub" # pub, sub
+
 topic_Webcam:
-    nodeName : "webcam_0_node"
-    topicName : "webcam_0"
+    nodeName : "webcam" # Unused
+    topicName : "webcam" # The _id number will added in suffix, i.e. "<topicName>_<id>"
     publishInterval_s : 0.033 # Unused
     width : 1920 # Publish resolution
     height : 1080
 
 camera_prop:
-    operationMode : "send" # "send" or "recv"
     cap_id : 0
     fps : 30.0
     width : 640 # Input resolution
@@ -25,3 +26,5 @@ generic_prop:
     qosService : "qos_0"
     safetyService : "safety_0"
     timesyncService : "timesync_0"
+    timesyncInterval_ms : 10000.0
+    timesyncAccuracy_ms : 2.0
