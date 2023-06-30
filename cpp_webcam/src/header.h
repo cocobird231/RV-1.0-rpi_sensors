@@ -9,7 +9,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#define TS_MODE
+// #define TS_NODE
 
 class Params : public vehicle_interfaces::GenericParams
 {
@@ -57,8 +57,8 @@ public:
     }
 };
 
-#ifdef TS_MODE
-class RGBImagePublisher : public TimeSyncNode
+#ifdef TS_NODE
+class RGBImagePublisher : public vehicle_interfaces::TimeSyncNode
 #else
 class RGBImagePublisher : public rclcpp::Node
 #endif
@@ -70,8 +70,8 @@ private:
 
 public:
     RGBImagePublisher(const std::shared_ptr<Params>& params) : 
-#ifdef TS_MODE
-        TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
+#ifdef TS_NODE
+        vehicle_interfaces::TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
 #endif
         rclcpp::Node(params->nodeName), 
         params(params)
@@ -88,14 +88,14 @@ public:
         msg.header.device_type = vehicle_interfaces::msg::Header::DEVTYPE_IMAGE;
         msg.header.device_id = this->nodeName_;
         msg.header.frame_id = frame_id++;
-#ifdef TS_MODE
+#ifdef TS_NODE
         msg.header.stamp_type = this->getTimestampType();
         msg.header.stamp = this->getTimestamp();
-        msg.header.stamp_offset = this->getCorrectDuration();
+        msg.header.stamp_offset = this->getCorrectDuration().nanoseconds();
 #else
         msg.header.stamp_type = vehicle_interfaces::msg::Header::STAMPTYPE_NONE_UTC_SYNC;
         msg.header.stamp = this->get_clock()->now();
-        msg.header.stamp_offset = rclcpp::Duration(0, 0);
+        msg.header.stamp_offset = 0;
 #endif
         msg.header.ref_publish_time_ms = this->params->topic_Webcam_pubInterval_s * 1000.0;
 
@@ -107,8 +107,8 @@ public:
     }
 };
 
-#ifdef TS_MODE
-class RGBImageSubscriber : public TimeSyncNode
+#ifdef TS_NODE
+class RGBImageSubscriber : public vehicle_interfaces::TimeSyncNode
 #else
 class RGBImageSubscriber : public rclcpp::Node
 #endif
@@ -146,8 +146,8 @@ private:
 
 public:
     RGBImageSubscriber(const std::shared_ptr<Params>& params, const cv::Mat& initMat) : 
-#ifdef TS_MODE
-        TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
+#ifdef TS_NODE
+        vehicle_interfaces::TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
 #endif
         rclcpp::Node(params->nodeName)
     {
@@ -188,7 +188,7 @@ private:
 	float rate_;
 	int frameCnt_;
 	std::chrono::duration<int, std::milli> interval_ms_;
-	Timer* timer_;
+	vehicle_interfaces::Timer* timer_;
 
 	std::mutex locker_;
 
@@ -221,7 +221,7 @@ public:
 		this->rate_ = 0;
 		this->frameCnt_ = 0;
 		this->interval_ms_ = std::chrono::milliseconds(interval_ms);
-		this->timer_ = new Timer(interval_ms, std::bind(&WorkingRate::_timerCallback, this));
+		this->timer_ = new vehicle_interfaces::Timer(interval_ms, std::bind(&WorkingRate::_timerCallback, this));
 	}
 
 	~WorkingRate()

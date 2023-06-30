@@ -34,6 +34,16 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 link_directories(${OpenCV_LIBRARY_DIRS})
 
 ## Build
+SET(ENABLE_TS_NODE False CACHE BOOL "Some user-specified option")
+if( ENABLE_TS_NODE ) 
+  add_compile_options(-DTS_NODE)
+endif()
+
+SET(ENABLE_QOS_NODE False CACHE BOOL "Some user-specified option")
+if( ENABLE_QOS_NODE ) 
+  add_compile_options(-DQOS_NODE)
+endif()
+
 add_executable(pub src/pub.cpp)
 ament_target_dependencies(pub rclcpp vehicle_interfaces)
 target_link_libraries(pub
