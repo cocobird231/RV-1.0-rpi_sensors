@@ -4,12 +4,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "vehicle_interfaces/msg/image.hpp"
-#include "vehicle_interfaces/params.h"
-#include "vehicle_interfaces/timesync.h"
+#include "vehicle_interfaces/vehicle_interfaces.h"
 
 #include <opencv2/opencv.hpp>
 
-// #define TS_NODE
 
 class Params : public vehicle_interfaces::GenericParams
 {
@@ -57,11 +55,8 @@ public:
     }
 };
 
-#ifdef TS_NODE
-class RGBImagePublisher : public vehicle_interfaces::TimeSyncNode
-#else
-class RGBImagePublisher : public rclcpp::Node
-#endif
+
+class RGBImagePublisher : public vehicle_interfaces::VehicleServiceNode
 {
 private:
     std::shared_ptr<Params> params;
@@ -70,9 +65,7 @@ private:
 
 public:
     RGBImagePublisher(const std::shared_ptr<Params>& params) : 
-#ifdef TS_NODE
-        vehicle_interfaces::TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
-#endif
+        vehicle_interfaces::VehicleServiceNode(params), 
         rclcpp::Node(params->nodeName), 
         params(params)
     {
@@ -88,15 +81,9 @@ public:
         msg.header.device_type = vehicle_interfaces::msg::Header::DEVTYPE_IMAGE;
         msg.header.device_id = this->nodeName_;
         msg.header.frame_id = frame_id++;
-#ifdef TS_NODE
         msg.header.stamp_type = this->getTimestampType();
         msg.header.stamp = this->getTimestamp();
         msg.header.stamp_offset = this->getCorrectDuration().nanoseconds();
-#else
-        msg.header.stamp_type = vehicle_interfaces::msg::Header::STAMPTYPE_NONE_UTC_SYNC;
-        msg.header.stamp = this->get_clock()->now();
-        msg.header.stamp_offset = 0;
-#endif
         msg.header.ref_publish_time_ms = this->params->topic_Webcam_pubInterval_s * 1000.0;
 
         msg.format_type = msg.FORMAT_JPEG;
@@ -107,11 +94,8 @@ public:
     }
 };
 
-#ifdef TS_NODE
-class RGBImageSubscriber : public vehicle_interfaces::TimeSyncNode
-#else
-class RGBImageSubscriber : public rclcpp::Node
-#endif
+
+class RGBImageSubscriber : public vehicle_interfaces::VehicleServiceNode
 {
 private:
     rclcpp::Subscription<vehicle_interfaces::msg::Image>::SharedPtr subscription_;
@@ -146,9 +130,7 @@ private:
 
 public:
     RGBImageSubscriber(const std::shared_ptr<Params>& params, const cv::Mat& initMat) : 
-#ifdef TS_NODE
-        vehicle_interfaces::TimeSyncNode(params->nodeName, params->timesyncService, 100000, 2), 
-#endif
+        vehicle_interfaces::VehicleServiceNode(params), 
         rclcpp::Node(params->nodeName)
     {
         this->setInitMat(initMat);
