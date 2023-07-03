@@ -11,14 +11,22 @@ RF_prop:
     dataRate : 250 # kbps (unuse)
 
 topic_RFCommSend: # Used if send mode
-    nodeName : "rfcommsend_subscriber_node" # primary
-    topicName : "rfcomm_0"
+    nodeName : "rfcommsend" # Automatically formed to "<nodeName>_<id>_node"
+    topicName : "rfcomm" # The _id number will added in suffix, i.e. "<topicName>_<id>"
 
 topic_RFCommRecv: # Used if recv mode
-    nodeName : "rfcommrecv_publisher_node" # primary
-    topicName : "rfcomm_1"
-    publishInterval : 0.1 # Unuse
+    nodeName : "rfcommrecv" # Automatically formed to "<nodeName>_<id>_node"
+    topicName : "rfcomm_1" # ID suffix required
+    publishInterval_s : 0.1 # Unuse
 
-node_prop:
-    nodeName : "rfcomm_node"
+# Settings for Params class under vehicle_interfaces/params.h
+# The nodeName describes the name of node, the name will be automatically formed as "<nodeName>_<id>_node"
+generic_prop:
     namespace : "V0"
+    nodeName : "rfcomm"
+    id : 0 # Frequently changed parameter
+    qosService : "qos_0"
+    safetyService : "safety_0"
+    timesyncService : "timesync_0"
+    timesyncInterval_ms : 1000000.0
+    timesyncAccuracy_ms : 2.0

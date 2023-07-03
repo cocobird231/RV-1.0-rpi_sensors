@@ -13,16 +13,17 @@ import rclpy
 from rclpy.node import Node
 
 from vehicle_interfaces.msg import WheelState
+from vehicle_interfaces.params import GenericParams
+from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
-class Params(Node):
+class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
         self.topic_RFCommSend_nodeName = 'rfcommsend_subscriber_node'
         self.topic_RFCommSend_topicName = 'topic_RFCommSend'
         self.topic_RFCommRecv_nodeName = 'rfcommrecv_publisher_node'
         self.topic_RFCommRecv_topicName = 'topic_RFCommRecv'
-        self.topic_RFCommRecv_pubInterval = 0.1
-        self.mainNodeName = 'rfcomm_node'
+        self.topic_RFCommRecv_pubInterval_s = 0.1
 
         self.RF_operationMode = 'send'
         self.RF_address = '1SNSR'
@@ -34,8 +35,7 @@ class Params(Node):
         self.declare_parameter('topic_RFCommSend_topicName', self.topic_RFCommSend_topicName)
         self.declare_parameter('topic_RFCommRecv_nodeName', self.topic_RFCommRecv_nodeName)
         self.declare_parameter('topic_RFCommRecv_topicName', self.topic_RFCommRecv_topicName)
-        self.declare_parameter('topic_RFCommRecv_pubInterval', self.topic_RFCommRecv_pubInterval)
-        self.declare_parameter('mainNodeName', self.mainNodeName)
+        self.declare_parameter('topic_RFCommRecv_pubInterval_s', self.topic_RFCommRecv_pubInterval_s)
 
         self.declare_parameter('RF_operationMode', self.RF_operationMode)
         self.declare_parameter('RF_address', self.RF_address)
@@ -49,8 +49,7 @@ class Params(Node):
         self.topic_RFCommSend_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_RFCommSend_topicName').get_parameter_value())
         self.topic_RFCommRecv_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_RFCommRecv_nodeName').get_parameter_value())
         self.topic_RFCommRecv_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_RFCommRecv_topicName').get_parameter_value())
-        self.topic_RFCommRecv_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_RFCommRecv_pubInterval').get_parameter_value())
-        self.mainNodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('mainNodeName').get_parameter_value())
+        self.topic_RFCommRecv_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_RFCommRecv_pubInterval_s').get_parameter_value())
 
         self.RF_operationMode = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_operationMode').get_parameter_value())
         self.RF_address = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_address').get_parameter_value())
@@ -58,9 +57,9 @@ class Params(Node):
         self.RF_channel = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_channel').get_parameter_value())
         self.RF_dataRate = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_dataRate').get_parameter_value())
 
-class WheelStateSubscriber(Node):# Send mode
+class WheelStateSubscriber(GenericParams):# Send mode
     def __init__(self, params):
-        super().__init__(params.topic_RFCommSend_nodeName)
+        super().__init__(params)
 
         # Connect to pigpiod
         print(f'Connecting to GPIO daemon on localhost:8888 ...')
@@ -107,10 +106,10 @@ class WheelStateSubscriber(Node):# Send mode
             %(msg.gear, msg.steering, msg.pedal_throttle, msg.pedal_brake, msg.pedal_clutch, \
                 msg.button, msg.func))
 
-class WheelStatePublisher(Node):# Recv mode
+class WheelStatePublisher(GenericParams):# Recv mode
     def __init__(self, params):
-        super().__init__(params.topic_RFCommRecv_nodeName)
-
+        super().__init__(params)
+        self.params_ = params
         # Connect to pigpiod
         print(f'Connecting to GPIO daemon on localhost:8888 ...')
         self.pi = pigpio.pi('localhost', 8888)
@@ -125,8 +124,7 @@ class WheelStatePublisher(Node):# Recv mode
         self.nrf.set_address_bytes(len(self.address))
         self.nrf.open_reading_pipe(RF24_RX_ADDR.P1, self.address)
         self.nrf.show_registers()
-        
-        self.nodeName_ = params.topic_RFCommRecv_nodeName
+
         self.frame_id_ = 0
         self.publisher_ = self.create_publisher(WheelState, params.topic_RFCommRecv_topicName, 10)
         self.runRFRecv()
@@ -169,11 +167,13 @@ class WheelStatePublisher(Node):# Recv mode
 
                         msg.header.priority = msg.header.PRIORITY_CONTROL
                         msg.header.device_type = msg.header.DEVTYPE_RF
-                        msg.header.device_id = self.nodeName_
+                        msg.header.device_id = self.params_.nodeName
                         msg.header.frame_id = self.frame_id_
                         self.frame_id_ += 1
-                        msg.header.stamp_type = msg.header.STAMPTYPE_NO_SYNC
-                        msg.header.stamp = self.get_clock().now().to_msg()
+                        msg.header.stamp_type = self.getTimestampType()
+                        msg.header.stamp = self.getTimestamp().to_msg()
+                        msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+                        msg.header.ref_publish_time_ms = 0
 
                         self.publisher_.publish(msg)
                         self.get_logger().info('Publishing: %03d | %05d %05d %05d %05d | %03d %03d' \

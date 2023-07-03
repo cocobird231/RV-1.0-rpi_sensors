@@ -19,7 +19,7 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {
-                    "topic_Webcam_nodeName" : data['topic_Webcam']['nodeName'], 
+                    "topic_Webcam_nodeName" : data['topic_Webcam']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
                     "topic_Webcam_topicName" : data['topic_Webcam']['topicName'] + '_' + str(data['generic_prop']['id']), 
                     "topic_Webcam_pubInterval_s" : data['topic_Webcam']['publishInterval_s'], 
                     "topic_Webcam_width" : data['topic_Webcam']['width'], 

@@ -13,19 +13,28 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="py_sense",
-            namespace=data['node_prop']['namespace'],
+            namespace=data['generic_prop']['namespace'],
             executable="pub",
             output="screen",
             emulate_tty=True,
             parameters=[
                 {
-                    "topic_IMU_nodeName" : data['topic_IMU']['nodeName'], 
-                    "topic_IMU_topicName" : data['topic_IMU']['topicName'], 
-                    "topic_IMU_pubInterval" : data['topic_IMU']['publishInterval'], 
-                    "topic_ENV_nodeName" : data['topic_ENV']['nodeName'], 
-                    "topic_ENV_topicName" : data['topic_ENV']['topicName'], 
-                    "topic_ENV_pubInterval" : data['topic_ENV']['publishInterval'], 
-                    "mainNodeName" : data['node_prop']['nodeName'], 
+                    "topic_IMU_nodeName" : data['topic_IMU']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
+                    "topic_IMU_topicName" : data['topic_IMU']['topicName'] + '_' + str(data['generic_prop']['id']), 
+                    "topic_IMU_pubInterval_s" : data['topic_IMU']['publishInterval_s'], 
+                    "topic_ENV_nodeName" : data['topic_ENV']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
+                    "topic_ENV_topicName" : data['topic_ENV']['topicName'] + '_' + str(data['generic_prop']['id']), 
+                    "topic_ENV_pubInterval_s" : data['topic_ENV']['publishInterval_s'], 
+
+                    # Settings for Params class under vehicle_interfaces/params.h
+                    # Do not change the settings rashly
+                    "nodeName" : data['generic_prop']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
+                    "id" : data['generic_prop']['id'], 
+                    "qosService" : data['generic_prop']['qosService'], 
+                    "safetyService" : data['generic_prop']['safetyService'], 
+                    "timesyncService" : data['generic_prop']['timesyncService'], 
+                    "timesyncInterval_ms" : data['generic_prop']['timesyncInterval_ms'], 
+                    "timesyncAccuracy_ms" : data['generic_prop']['timesyncAccuracy_ms'], 
                 }
             ]
         )

@@ -5,36 +5,34 @@ import threading
 import rclpy
 from rclpy.node import Node
 from vehicle_interfaces.msg import Distance
+from vehicle_interfaces.params import GenericParams
+from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
-class Params(Node):
+class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
         self.topic_Ultrasound_nodeName = 'ultrasound_publisher_node'
         self.topic_Ultrasound_topicName = 'topic_Ultrasound'
-        self.topic_Ultrasound_pubInterval = 0.1
-        self.mainNodeName = 'ultrasound_node'
+        self.topic_Ultrasound_pubInterval_s = 0.1
 
         self.declare_parameter('topic_Ultrasound_nodeName', self.topic_Ultrasound_nodeName)
         self.declare_parameter('topic_Ultrasound_topicName', self.topic_Ultrasound_topicName)
-        self.declare_parameter('topic_Ultrasound_pubInterval', self.topic_Ultrasound_pubInterval)
-        self.declare_parameter('mainNodeName', self.mainNodeName)
+        self.declare_parameter('topic_Ultrasound_pubInterval_s', self.topic_Ultrasound_pubInterval_s)
         self._getParam()
     
     def _getParam(self):
         self.topic_Ultrasound_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_Ultrasound_nodeName').get_parameter_value())
         self.topic_Ultrasound_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_Ultrasound_topicName').get_parameter_value())
-        self.topic_Ultrasound_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_Ultrasound_pubInterval').get_parameter_value())
-        self.mainNodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('mainNodeName').get_parameter_value())
+        self.topic_Ultrasound_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_Ultrasound_pubInterval_s').get_parameter_value())
 
-class UltraSoundPublisher(Node):
+class UltraSoundPublisher(VehicleServiceNode):
 
-    def __init__(self, nodeName, topicName, interval_s):
-        super().__init__(nodeName)
-        self.nodeName_ = nodeName
-        self.publisher_ = self.create_publisher(Distance, topicName, 10)
+    def __init__(self, params : Params):
+        super().__init__(params)
+        self.params_ = params
+        self.publisher_ = self.create_publisher(Distance, params.topic_Ultrasound_topicName, 10)
         self.frame_id_ = 0
-        timer_period = interval_s  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(params.topic_Ultrasound_pubInterval_s, self.timer_callback)
         
         self.GPIO_TRIGGER1 = 17# Left ultrasound trigger
         self.GPIO_TRIGGER2 = 27# Mid ultrasound trigger
@@ -100,11 +98,13 @@ class UltraSoundPublisher(Node):
         msg = Distance()
         msg.header.priority = msg.header.PRIORITY_SENSOR
         msg.header.device_type = msg.header.DEVTYPE_ULTRASONIC
-        msg.header.device_id = self.nodeName_
+        msg.header.device_id = self.params_.nodeName
         msg.header.frame_id = self.frame_id_
         self.frame_id_ += 1
-        msg.header.stamp_type = msg.header.STAMPTYPE_NO_SYNC
-        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.stamp_type = self.getTimestampType()
+        msg.header.stamp = self.getTimestamp().to_msg()
+        msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+        msg.header.ref_publish_time_ms = self.params_.topic_Ultrasound_pubInterval_s * 1000.0
 
         msg.unit_type = msg.UNIT_METER
 
@@ -129,7 +129,7 @@ class UltraSoundPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
     params = Params('ultrasound_params_node')
-    ultrasound_publisher = UltraSoundPublisher(params.mainNodeName, params.topic_Ultrasound_topicName, params.topic_Ultrasound_pubInterval)
+    ultrasound_publisher = UltraSoundPublisher(params)
     rclpy.spin(ultrasound_publisher)
 
     ultrasound_publisher.destroy_node()

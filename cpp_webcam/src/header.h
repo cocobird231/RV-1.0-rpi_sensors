@@ -12,8 +12,8 @@
 class Params : public vehicle_interfaces::GenericParams
 {
 public:
-    std::string topic_Webcam_nodeName = "webcam_publisher_node";
-    std::string topic_Webcam_topicName = "topic_Webcam";
+    std::string topic_Webcam_nodeName = "webcam_0_node";
+    std::string topic_Webcam_topicName = "webcam_0";
     float topic_Webcam_pubInterval_s = 0.03;
     int topic_Webcam_width = 1920;
     int topic_Webcam_height = 1080;
@@ -59,17 +59,15 @@ public:
 class RGBImagePublisher : public vehicle_interfaces::VehicleServiceNode
 {
 private:
-    std::shared_ptr<Params> params;
+    std::shared_ptr<Params> params_;
     rclcpp::Publisher<vehicle_interfaces::msg::Image>::SharedPtr pub_;
-    std::string nodeName_;
 
 public:
     RGBImagePublisher(const std::shared_ptr<Params>& params) : 
         vehicle_interfaces::VehicleServiceNode(params), 
         rclcpp::Node(params->nodeName), 
-        params(params)
+        params_(params)
     {
-        this->nodeName_ = params->nodeName;
         this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, 10);
     }
 
@@ -79,12 +77,12 @@ public:
         auto msg = vehicle_interfaces::msg::Image();
         msg.header.priority = vehicle_interfaces::msg::Header::PRIORITY_SENSOR;
         msg.header.device_type = vehicle_interfaces::msg::Header::DEVTYPE_IMAGE;
-        msg.header.device_id = this->nodeName_;
+        msg.header.device_id = this->params_->nodeName;
         msg.header.frame_id = frame_id++;
         msg.header.stamp_type = this->getTimestampType();
         msg.header.stamp = this->getTimestamp();
         msg.header.stamp_offset = this->getCorrectDuration().nanoseconds();
-        msg.header.ref_publish_time_ms = this->params->topic_Webcam_pubInterval_s * 1000.0;
+        msg.header.ref_publish_time_ms = this->params_->topic_Webcam_pubInterval_s * 1000.0;
 
         msg.format_type = msg.FORMAT_JPEG;
         msg.width = sz.width;
@@ -99,7 +97,6 @@ class RGBImageSubscriber : public vehicle_interfaces::VehicleServiceNode
 {
 private:
     rclcpp::Subscription<vehicle_interfaces::msg::Image>::SharedPtr subscription_;
-    std::string nodeName_;
 
     cv::Mat recvMat_;
     std::atomic<bool> initMatF_;
@@ -134,7 +131,6 @@ public:
         rclcpp::Node(params->nodeName)
     {
         this->setInitMat(initMat);
-        this->nodeName_ = params->nodeName;
         this->subscription_ = this->create_subscription<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, 
             10, std::bind(&RGBImageSubscriber::_topic_callback, this, std::placeholders::_1));
     }

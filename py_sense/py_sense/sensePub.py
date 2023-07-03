@@ -3,6 +3,8 @@ from rclpy.node import Node
 
 from vehicle_interfaces.msg import IMU
 from vehicle_interfaces.msg import Environment
+from vehicle_interfaces.params import GenericParams
+from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
 from sense_hat import SenseHat
 import numpy as np
@@ -22,105 +24,107 @@ def euler_to_quaternion(yaw, pitch, roll):# ZYX order
     return [qx, qy, qz, qw]
 
 
-class Params(Node):
+class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
         self.topic_IMU_nodeName = 'imu_publisher_node'
         self.topic_IMU_topicName = 'topic_IMU'
-        self.topic_IMU_pubInterval = 0.5
+        self.topic_IMU_pubInterval_s = 0.5
         self.topic_ENV_nodeName = 'env_publisher_node'
         self.topic_ENV_topicName = 'topic_ENV'
-        self.topic_ENV_pubInterval = 0.5
-        self.mainNodeName = 'sense_node'
+        self.topic_ENV_pubInterval_s = 0.5
 
         self.declare_parameter('topic_IMU_nodeName', self.topic_IMU_nodeName)
         self.declare_parameter('topic_IMU_topicName', self.topic_IMU_topicName)
-        self.declare_parameter('topic_IMU_pubInterval', self.topic_IMU_pubInterval)
+        self.declare_parameter('topic_IMU_pubInterval_s', self.topic_IMU_pubInterval_s)
         self.declare_parameter('topic_ENV_nodeName', self.topic_ENV_nodeName)
         self.declare_parameter('topic_ENV_topicName', self.topic_ENV_topicName)
-        self.declare_parameter('topic_ENV_pubInterval', self.topic_ENV_pubInterval)
-        self.declare_parameter('mainNodeName', self.mainNodeName)
+        self.declare_parameter('topic_ENV_pubInterval_s', self.topic_ENV_pubInterval_s)
         self._getParam()
     
     def _getParam(self):
         self.topic_IMU_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_IMU_nodeName').get_parameter_value())
         self.topic_IMU_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_IMU_topicName').get_parameter_value())
-        self.topic_IMU_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_IMU_pubInterval').get_parameter_value())
+        self.topic_IMU_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_IMU_pubInterval_s').get_parameter_value())
         self.topic_ENV_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_ENV_nodeName').get_parameter_value())
         self.topic_ENV_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_ENV_topicName').get_parameter_value())
-        self.topic_ENV_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_ENV_pubInterval').get_parameter_value())
-        self.mainNodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('mainNodeName').get_parameter_value())
+        self.topic_ENV_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_ENV_pubInterval_s').get_parameter_value())
 
-class SensePublisher(Node):
+class SensePublisher(VehicleServiceNode):
+    def __init__(self, params : Params):
+        super().__init__(params)
+        self.params_ = params
+        self.imuPublisher_ = self.create_publisher(IMU, params.topic_IMU_topicName, 10)
+        self.envPublisher_ = self.create_publisher(Environment, params.topic_ENV_topicName, 10)
+        self.sense_ = SenseHat()
+        self.sense_.set_imu_config(True, True, True)
+        self.imu_frame_id_ = 0
+        self.env_frame_id_ = 0
+        self.imuTimer_ = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
+        self.envTimer_ = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
 
-    def __init__(self, nodeName : str, topicName_IMU : str, topicName_ENV : str, interval_s):
-        super().__init__(nodeName)
-        self.nodeName_ = nodeName
-        self.imuPublisher_ = self.create_publisher(IMU, topicName_IMU, 10)
-        self.envPublisher_ = self.create_publisher(Environment, topicName_ENV, 10)
-        self.sense = SenseHat()
-        self.sense.set_imu_config(True, True, True)
-        self.frame_id_ = 0
-        timer_period = interval_s  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-
-    def timer_callback(self):
+    def imu_timer_callback(self):
         # IMU Msg
         imuMsg = IMU()
         imuMsg.header.priority = imuMsg.header.PRIORITY_SENSOR
         imuMsg.header.device_type = imuMsg.header.DEVTYPE_IMU
-        imuMsg.header.device_id = self.nodeName_ + "_IMU"
-        imuMsg.header.frame_id = self.frame_id_
-        imuMsg.header.stamp_type = imuMsg.header.STAMPTYPE_NO_SYNC
-        imuMsg.header.stamp = self.get_clock().now().to_msg()
+        imuMsg.header.device_id = self.params_.nodeName + "_IMU"
+        imuMsg.header.frame_id = self.imu_frame_id_
+        self.imu_frame_id_ += 1
+        imuMsg.header.stamp_type = self.getTimestampType()
+        imuMsg.header.stamp = self.getTimestamp().to_msg()
+        imuMsg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+        imuMsg.header.ref_publish_time_ms = self.params_.topic_IMU_pubInterval_s * 1000.0
 
         imuMsg.unit_type = imuMsg.UNIT_ACC_GS | imuMsg.UNIT_ROT_RAD
         
-        rot = self.sense.get_orientation_radians()
+        rot = self.sense_.get_orientation_radians()
         quaternion = euler_to_quaternion(rot['yaw'], rot['pitch'], rot['roll'])
         imuMsg.orientation[0] = quaternion[0]
         imuMsg.orientation[1] = quaternion[1]
         imuMsg.orientation[2] = quaternion[2]
         imuMsg.orientation[3] = quaternion[3]
 
-        gyro = self.sense.get_gyroscope_raw()# rad/sec
+        gyro = self.sense_.get_gyroscope_raw()# rad/sec
         imuMsg.angular_velocity[0] = gyro['x']
         imuMsg.angular_velocity[1] = gyro['y']
         imuMsg.angular_velocity[2] = gyro['z']
 
-        acc = self.sense.get_accelerometer_raw()# G
+        acc = self.sense_.get_accelerometer_raw()# G
         imuMsg.linear_acceleration[0] = acc['x']# * 9.80665
         imuMsg.linear_acceleration[1] = acc['y']# * 9.80665
         imuMsg.linear_acceleration[2] = acc['z']# * 9.80665
-        
+
+        self.imuPublisher_.publish(imuMsg)
+        self.get_logger().info('Publishing: IMU')
+
+    def env_timer_callback(self):
         # Environment Msg
         envMsg = Environment()
         envMsg.header.priority = envMsg.header.PRIORITY_SENSOR
         envMsg.header.device_type = envMsg.header.DEVTYPE_ENVIRONMENT
-        envMsg.header.device_id = self.nodeName_ + "_ENV"
-        envMsg.header.frame_id = self.frame_id_
-        envMsg.header.stamp_type = envMsg.header.STAMPTYPE_NO_SYNC
-        envMsg.header.stamp = self.get_clock().now().to_msg()
+        envMsg.header.device_id = self.params_.nodeName + "_ENV"
+        envMsg.header.frame_id = self.env_frame_id_
+        self.env_frame_id_ += 1
+        envMsg.header.stamp_type = self.getTimestampType()
+        envMsg.header.stamp = self.getTimestamp().to_msg()
+        envMsg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+        envMsg.header.ref_publish_time_ms = self.params_.topic_ENV_pubInterval_s * 1000.0
 
         envMsg.unit_type = envMsg.UNIT_TEMP_CELSIUS | envMsg.UNIT_PRESS_MBAR
 
-        envMsg.temperature = float((self.sense.get_temperature_from_humidity() + self.sense.get_temperature_from_pressure()) / 2)
-        envMsg.relative_humidity = float(self.sense.get_humidity() / 100.0)# normalized percentage
-        envMsg.pressure = float(self.sense.get_pressure())# * 100.0# mbar to Pa, 1bar = 100kPa
+        envMsg.temperature = float((self.sense_.get_temperature_from_humidity() + self.sense_.get_temperature_from_pressure()) / 2)
+        envMsg.relative_humidity = float(self.sense_.get_humidity() / 100.0)# normalized percentage
+        envMsg.pressure = float(self.sense_.get_pressure())# * 100.0# mbar to Pa, 1bar = 100kPa
 
-        self.frame_id_ += 1
-        
-        # Publish
-        self.imuPublisher_.publish(imuMsg)
         self.envPublisher_.publish(envMsg)
-        self.get_logger().info('Publishing: IMU, %fC, %f%%rH, %fmbar' \
-                                %(envMsg.temperature, envMsg.relative_humidity, envMsg.pressure))
+        self.get_logger().info('Publishing: ENV %fC, %f%%rH, %fmbar' %(envMsg.temperature, envMsg.relative_humidity, envMsg.pressure))
 
 
 def main(args=None):
     rclpy.init(args=args)
     params = Params('sense_params_node')
-    sense_publisher = SensePublisher(params.mainNodeName, params.topic_IMU_topicName, params.topic_ENV_topicName, params.topic_IMU_pubInterval)
+    sense_publisher = SensePublisher(params)
     rclpy.spin(sense_publisher)
 
     # Destroy the node explicitly

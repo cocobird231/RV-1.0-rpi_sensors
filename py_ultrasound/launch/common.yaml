@@ -2,10 +2,18 @@
 
 ---
 topic_Ultrasound:
-    nodeName : "ultrasound_publisher_node"
-    topicName : "ultrasound_0"
-    publishInterval : 0.1 #primary
+    nodeName : "ultrasound" # Unused
+    topicName : "ultrasound" # The _id number will added in suffix, i.e. "<topicName>_<id>"
+    publishInterval_s : 0.1 #primary
 
-node_prop:
-    nodeName : "ultrasound_0_node" #primary
+# Settings for Params class under vehicle_interfaces/params.h
+# The nodeName describes the name of node, the name will be automatically formed as "<nodeName>_<id>_node"
+generic_prop:
     namespace : "V0"
+    nodeName : "ultrasound"
+    id : 0 # Frequently changed parameter
+    qosService : "qos_0"
+    safetyService : "safety_0"
+    timesyncService : "timesync_0"
+    timesyncInterval_ms : 1000000.0
+    timesyncAccuracy_ms : 2.0

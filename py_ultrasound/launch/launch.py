@@ -13,16 +13,25 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package="py_ultrasound",
-            namespace=data['node_prop']['namespace'],
+            namespace=data['generic_prop']['namespace'],
             executable="pub",
             output="screen",
             emulate_tty=True,
             parameters=[
                 {
-                    "topic_Ultrasound_nodeName" : data['topic_Ultrasound']['nodeName'], 
-                    "topic_Ultrasound_topicName" : data['topic_Ultrasound']['topicName'], 
-                    "topic_Ultrasound_pubInterval" : data['topic_Ultrasound']['publishInterval'], 
-                    "mainNodeName" : data['node_prop']['nodeName'], 
+                    "topic_Ultrasound_nodeName" : data['topic_Ultrasound']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
+                    "topic_Ultrasound_topicName" : data['topic_Ultrasound']['topicName'] + '_' + str(data['generic_prop']['id']), 
+                    "topic_Ultrasound_pubInterval_s" : data['topic_Ultrasound']['publishInterval_s'], 
+
+                    # Settings for Params class under vehicle_interfaces/params.h
+                    # Do not change the settings rashly
+                    "nodeName" : data['generic_prop']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
+                    "id" : data['generic_prop']['id'], 
+                    "qosService" : data['generic_prop']['qosService'], 
+                    "safetyService" : data['generic_prop']['safetyService'], 
+                    "timesyncService" : data['generic_prop']['timesyncService'], 
+                    "timesyncInterval_ms" : data['generic_prop']['timesyncInterval_ms'], 
+                    "timesyncAccuracy_ms" : data['generic_prop']['timesyncAccuracy_ms'], 
                 }
             ]
         )

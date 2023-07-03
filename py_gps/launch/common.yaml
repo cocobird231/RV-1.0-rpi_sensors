@@ -2,9 +2,9 @@
 
 ---
 topic_GPS:
-    nodeName : "gps_0_node"
-    topicName : "gps_0"
-    publishInterval : 0.5
+    nodeName : "gps" # Unused
+    topicName : "gps" # The _id number will added in suffix, i.e. "<topicName>_<id>"
+    publishInterval_s : 0.5
 
 GPS_prop:
     module : "ZED-F9P" # "M8Q" or "ZED-F9P"
@@ -23,3 +23,5 @@ generic_prop:
     qosService : "qos_0"
     safetyService : "safety_0"
     timesyncService : "timesync_0"
+    timesyncInterval_ms : 1000000.0
+    timesyncAccuracy_ms : 2.0

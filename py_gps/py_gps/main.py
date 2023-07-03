@@ -4,19 +4,21 @@ import threading
 import rclpy
 from rclpy.node import Node
 from vehicle_interfaces.msg import GPS
+from vehicle_interfaces.params import GenericParams
+from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
 from gps3.agps3threaded import AGPS3mechanism
 from ntripClient import NtripClient
 import ntripClient
 
-class Params(Node):
+
+class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
         self.topic_GPS_nodeName = 'gps_publisher_node'
         self.topic_GPS_topicName = 'topic_GPS'
-        self.topic_GPS_pubInterval = 0.5
-        self.nodeName = 'gps_0_node'
-        self.id = 0
+        self.topic_GPS_pubInterval_s = 0.5
+
         self.module = 'ZED-F9P'
         self.caster = ''
         self.port = 2101
@@ -26,9 +28,8 @@ class Params(Node):
 
         self.declare_parameter('topic_GPS_nodeName', self.topic_GPS_nodeName)
         self.declare_parameter('topic_GPS_topicName', self.topic_GPS_topicName)
-        self.declare_parameter('topic_GPS_pubInterval', self.topic_GPS_pubInterval)
-        self.declare_parameter('nodeName', self.nodeName)
-        self.declare_parameter('id', self.id)
+        self.declare_parameter('topic_GPS_pubInterval_s', self.topic_GPS_pubInterval_s)
+
         self.declare_parameter('module', self.module)
         self.declare_parameter('caster', self.caster)
         self.declare_parameter('port', self.port)
@@ -40,9 +41,8 @@ class Params(Node):
     def _getParam(self):
         self.topic_GPS_nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_nodeName').get_parameter_value())
         self.topic_GPS_topicName = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_topicName').get_parameter_value())
-        self.topic_GPS_pubInterval = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_pubInterval').get_parameter_value())
-        self.nodeName = rclpy.parameter.parameter_value_to_python(self.get_parameter('nodeName').get_parameter_value())
-        self.id = rclpy.parameter.parameter_value_to_python(self.get_parameter('id').get_parameter_value())
+        self.topic_GPS_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_pubInterval_s').get_parameter_value())
+
         self.module = rclpy.parameter.parameter_value_to_python(self.get_parameter('module').get_parameter_value())
         self.caster = rclpy.parameter.parameter_value_to_python(self.get_parameter('caster').get_parameter_value())
         self.port = rclpy.parameter.parameter_value_to_python(self.get_parameter('port').get_parameter_value())
@@ -50,17 +50,15 @@ class Params(Node):
         self.username = rclpy.parameter.parameter_value_to_python(self.get_parameter('username').get_parameter_value())
         self.password = rclpy.parameter.parameter_value_to_python(self.get_parameter('password').get_parameter_value())
 
-        self.nodeName += '_' + str(self.id) + '_node'
 
 
-class GPSPublisher(Node):
+class GPSPublisher(VehicleServiceNode):
     def __init__(self, params):
-        super().__init__(params.nodeName)
-        self.nodeName_ = params.nodeName
+        super().__init__(params)
+        self.params_ = params
         self.publisher_ = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
         self.frame_id_ = 0
-        timer_period = params.topic_GPS_pubInterval  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
 
         self.module = params.module
 
@@ -88,11 +86,13 @@ class GPSPublisher(Node):
         msg = GPS()
         msg.header.priority = msg.header.PRIORITY_SENSOR
         msg.header.device_type = msg.header.DEVTYPE_GPS
-        msg.header.device_id = self.nodeName_
+        msg.header.device_id = self.params_.nodeName
         msg.header.frame_id = self.frame_id_
         self.frame_id_ += 1
-        msg.header.stamp_type = msg.header.STAMPTYPE_NO_SYNC
-        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.stamp_type = self.getTimestampType()
+        msg.header.stamp = self.getTimestamp().to_msg()
+        msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+        msg.header.ref_publish_time_ms = self.params_.topic_GPS_pubInterval_s * 1000.0
 
         if (self.module == 'M8Q'):
             if (self.gpsThread.data_stream.lat != 'n/a' and self.gpsThread.data_stream.lon != 'n/a'):
