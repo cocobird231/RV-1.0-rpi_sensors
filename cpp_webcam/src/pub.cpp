@@ -5,6 +5,7 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
     auto params = std::make_shared<Params>("webcam_params_node");
     auto webcam_publisher = std::make_shared<RGBImagePublisher>(params);
+    std::thread pubTh = std::thread(SpinNode, webcam_publisher, "webcam_publisher");
     
     cv::VideoCapture cap;
     cap.open(params->camera_cap_id);
@@ -52,6 +53,7 @@ int main(int argc, char** argv)
         webcam_publisher->pubImage(pubImgVec, pubImgSize);
         cv::waitKey(1);
     }
+    pubTh.join();
     cap.release();
     rclcpp::shutdown();
     return EXIT_SUCCESS;
