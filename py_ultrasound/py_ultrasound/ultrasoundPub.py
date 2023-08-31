@@ -30,9 +30,17 @@ class UltraSoundPublisher(VehicleServiceNode):
     def __init__(self, params : Params):
         super().__init__(params)
         self.params_ = params
-        self.publisher_ = self.create_publisher(Distance, params.topic_Ultrasound_topicName, 10)
-        self.frame_id_ = 0
-        self.timer = self.create_timer(params.topic_Ultrasound_pubInterval_s, self.timer_callback)
+
+        self.addQoSCallbackFunc(self.__qosCallback)
+        
+        prof = self.addQoSTracking(params.topic_Ultrasound_topicName)
+        if (prof != None):
+            self.__publisher = self.create_publisher(Distance, params.topic_Ultrasound_topicName, prof)
+        else:
+            self.__publisher = self.create_publisher(Distance, params.topic_Ultrasound_topicName, 10)
+
+        self.__frame_id = 0
+        self.__timer = self.create_timer(params.topic_Ultrasound_pubInterval_s, self.timer_callback)
         
         self.GPIO_TRIGGER1 = 17# Left ultrasound trigger
         self.GPIO_TRIGGER2 = 27# Mid ultrasound trigger
@@ -56,6 +64,11 @@ class UltraSoundPublisher(VehicleServiceNode):
 
         self.distLock = threading.Lock()
 
+    def __qosCallback(self):
+        self.get_logger().info('[UltraSoundPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
+        for topic in qmap:
+            self.get_logger().info('[UltraSoundPublisher.__qosCallback] Get qmap[%s]' %topic)
+    
     def getDistance(self, distNum : int, trigger : int, echo : int):
         GPIO.output(trigger, True)# set Trigger to HIGH
         time.sleep(0.00001)
@@ -99,8 +112,8 @@ class UltraSoundPublisher(VehicleServiceNode):
         msg.header.priority = msg.header.PRIORITY_SENSOR
         msg.header.device_type = msg.header.DEVTYPE_ULTRASONIC
         msg.header.device_id = self.params_.nodeName
-        msg.header.frame_id = self.frame_id_
-        self.frame_id_ += 1
+        msg.header.frame_id = self.__frame_id
+        self.__frame_id += 1
         msg.header.stamp_type = self.getTimestampType()
         msg.header.stamp = self.getTimestamp().to_msg()
         msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
@@ -122,7 +135,7 @@ class UltraSoundPublisher(VehicleServiceNode):
         
         msg.distance = min(self.d1, self.d2, self.d3)
 
-        self.publisher_.publish(msg)
+        self.__publisher.publish(msg)
         self.get_logger().info('Publishing: %.2f m (%.2f %.2f %.2f)' %(msg.distance, self.d1, self.d2, self.d3))
 
 

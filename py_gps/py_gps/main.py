@@ -55,18 +55,26 @@ class Params(GenericParams):
 class GPSPublisher(VehicleServiceNode):
     def __init__(self, params):
         super().__init__(params)
-        self.params_ = params
-        self.publisher_ = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
-        self.frame_id_ = 0
-        self.timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
+        self.__params = params
 
-        self.module = params.module
+        self.addQoSCallbackFunc(self.__qosCallback)
+        
+        prof = self.addQoSTracking(params.topic_GPS_topicName)
+        if (prof != None):
+            self.__publisher = self.create_publisher(GPS, params.topic_GPS_topicName, prof)
+        else:
+            self.__publisher = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
+        
+        self.__frame_id = 0
+        self.__timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
 
-        if (self.module == 'M8Q'):
+        self.__module = params.module
+
+        if (self.__module == 'M8Q'):
             self.gpsThread = AGPS3mechanism()
             self.gpsThread.stream_data()
             self.gpsThread.run_thread()
-        elif (self.module == 'ZED-F9P'):
+        elif (self.__module == 'ZED-F9P'):
             ntripArgs = {}
             ntripArgs['user'] = params.username + ":" + params.password
             ntripArgs['caster'] = params.caster
@@ -81,20 +89,25 @@ class GPSPublisher(VehicleServiceNode):
     
     def __del__(self):
         self.ntripCliTh.join()
+    
+    def __qosCallback(self):
+        self.get_logger().info('[GPSPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
+        for topic in qmap:
+            self.get_logger().info('[GPSPublisher.__qosCallback] Get qmap[%s]' %topic)
 
     def timer_callback(self):
         msg = GPS()
         msg.header.priority = msg.header.PRIORITY_SENSOR
         msg.header.device_type = msg.header.DEVTYPE_GPS
-        msg.header.device_id = self.params_.nodeName
-        msg.header.frame_id = self.frame_id_
-        self.frame_id_ += 1
+        msg.header.device_id = self.__params.nodeName
+        msg.header.frame_id = self.__frame_id
+        self.__frame_id += 1
         msg.header.stamp_type = self.getTimestampType()
         msg.header.stamp = self.getTimestamp().to_msg()
         msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
-        msg.header.ref_publish_time_ms = self.params_.topic_GPS_pubInterval_s * 1000.0
+        msg.header.ref_publish_time_ms = self.__params.topic_GPS_pubInterval_s * 1000.0
 
-        if (self.module == 'M8Q'):
+        if (self.__module == 'M8Q'):
             if (self.gpsThread.data_stream.lat != 'n/a' and self.gpsThread.data_stream.lon != 'n/a'):
                 msg.gps_status = GPS.GPS_SPP
                 # gpsTime = self.gpsThread.data_stream.time
@@ -106,7 +119,7 @@ class GPSPublisher(VehicleServiceNode):
                     pass
                 # speed = self.gpsThread.data_stream.speed
                 # track = self.gpsThread.data_stream.track
-        elif (self.module == 'ZED-F9P'):
+        elif (self.__module == 'ZED-F9P'):
             ntripClient.ros2DictLock.acquire()
             tmp = ntripClient.gpsDict
             ntripClient.ros2DictLock.release()
@@ -118,7 +131,7 @@ class GPSPublisher(VehicleServiceNode):
             except:
                 pass
 
-        self.publisher_.publish(msg)
+        self.__publisher.publish(msg)
         self.get_logger().info('Publishing: "%d, %f, %f, %f"' %(msg.gps_status, msg.latitude, msg.longitude, msg.altitude))
 
 

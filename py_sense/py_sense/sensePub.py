@@ -53,49 +53,66 @@ class Params(GenericParams):
 class SensePublisher(VehicleServiceNode):
     def __init__(self, params : Params):
         super().__init__(params)
-        self.params_ = params
-        self.imuPublisher_ = self.create_publisher(IMU, params.topic_IMU_topicName, 10)
-        self.envPublisher_ = self.create_publisher(Environment, params.topic_ENV_topicName, 10)
-        self.sense_ = SenseHat()
-        self.sense_.set_imu_config(True, True, True)
-        self.imu_frame_id_ = 0
-        self.env_frame_id_ = 0
-        self.imuTimer_ = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
-        self.envTimer_ = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
+        self.__params = params
+        self.addQoSCallbackFunc(self.__qosCallback)
+
+        prof = self.addQoSTracking(params.topic_IMU_topicName)
+        if (prof != None):
+            self.__imuPublisher = self.create_publisher(IMU, params.topic_IMU_topicName, prof)
+        else:
+            self.__imuPublisher = self.create_publisher(IMU, params.topic_IMU_topicName, 10)
+        
+        prof = self.addQoSTracking(params.topic_ENV_topicName)
+        if (prof != None):
+            self.__envPublisher = self.create_publisher(Environment, params.topic_ENV_topicName, prof)
+        else:
+            self.__envPublisher = self.create_publisher(Environment, params.topic_ENV_topicName, 10)
+        
+        self.__sense = SenseHat()
+        self.__sense.set_imu_config(True, True, True)
+        self.__imu_frame_id = 0
+        self.__env_frame_id = 0
+        self.__imuTimer = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
+        self.__envTimer = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
+
+    def __qosCallback(self):
+        self.get_logger().info('[SensePublisher.__qosCallback] Get qmap size: %d' %len(qmap))
+        for topic in qmap:
+            self.get_logger().info('[SensePublisher.__qosCallback] Get qmap[%s]' %topic)
 
     def imu_timer_callback(self):
         # IMU Msg
         imuMsg = IMU()
         imuMsg.header.priority = imuMsg.header.PRIORITY_SENSOR
         imuMsg.header.device_type = imuMsg.header.DEVTYPE_IMU
-        imuMsg.header.device_id = self.params_.nodeName + "_IMU"
-        imuMsg.header.frame_id = self.imu_frame_id_
-        self.imu_frame_id_ += 1
+        imuMsg.header.device_id = self.__params.nodeName + "_IMU"
+        imuMsg.header.frame_id = self.__imu_frame_id
+        self.__imu_frame_id += 1
         imuMsg.header.stamp_type = self.getTimestampType()
         imuMsg.header.stamp = self.getTimestamp().to_msg()
         imuMsg.header.stamp_offset = self.getCorrectDuration().nanoseconds
-        imuMsg.header.ref_publish_time_ms = self.params_.topic_IMU_pubInterval_s * 1000.0
+        imuMsg.header.ref_publish_time_ms = self.__params.topic_IMU_pubInterval_s * 1000.0
 
         imuMsg.unit_type = imuMsg.UNIT_ACC_GS | imuMsg.UNIT_ROT_RAD
         
-        rot = self.sense_.get_orientation_radians()
+        rot = self.__sense.get_orientation_radians()
         quaternion = euler_to_quaternion(rot['yaw'], rot['pitch'], rot['roll'])
         imuMsg.orientation[0] = quaternion[0]
         imuMsg.orientation[1] = quaternion[1]
         imuMsg.orientation[2] = quaternion[2]
         imuMsg.orientation[3] = quaternion[3]
 
-        gyro = self.sense_.get_gyroscope_raw()# rad/sec
+        gyro = self.__sense.get_gyroscope_raw()# rad/sec
         imuMsg.angular_velocity[0] = gyro['x']
         imuMsg.angular_velocity[1] = gyro['y']
         imuMsg.angular_velocity[2] = gyro['z']
 
-        acc = self.sense_.get_accelerometer_raw()# G
+        acc = self.__sense.get_accelerometer_raw()# G
         imuMsg.linear_acceleration[0] = acc['x']# * 9.80665
         imuMsg.linear_acceleration[1] = acc['y']# * 9.80665
         imuMsg.linear_acceleration[2] = acc['z']# * 9.80665
 
-        self.imuPublisher_.publish(imuMsg)
+        self.__imuPublisher.publish(imuMsg)
         self.get_logger().info('Publishing: IMU')
 
     def env_timer_callback(self):
@@ -103,21 +120,21 @@ class SensePublisher(VehicleServiceNode):
         envMsg = Environment()
         envMsg.header.priority = envMsg.header.PRIORITY_SENSOR
         envMsg.header.device_type = envMsg.header.DEVTYPE_ENVIRONMENT
-        envMsg.header.device_id = self.params_.nodeName + "_ENV"
-        envMsg.header.frame_id = self.env_frame_id_
-        self.env_frame_id_ += 1
+        envMsg.header.device_id = self.__params.nodeName + "_ENV"
+        envMsg.header.frame_id = self.__env_frame_id
+        self.__env_frame_id += 1
         envMsg.header.stamp_type = self.getTimestampType()
         envMsg.header.stamp = self.getTimestamp().to_msg()
         envMsg.header.stamp_offset = self.getCorrectDuration().nanoseconds
-        envMsg.header.ref_publish_time_ms = self.params_.topic_ENV_pubInterval_s * 1000.0
+        envMsg.header.ref_publish_time_ms = self.__params.topic_ENV_pubInterval_s * 1000.0
 
         envMsg.unit_type = envMsg.UNIT_TEMP_CELSIUS | envMsg.UNIT_PRESS_MBAR
 
-        envMsg.temperature = float((self.sense_.get_temperature_from_humidity() + self.sense_.get_temperature_from_pressure()) / 2)
-        envMsg.relative_humidity = float(self.sense_.get_humidity() / 100.0)# normalized percentage
-        envMsg.pressure = float(self.sense_.get_pressure())# * 100.0# mbar to Pa, 1bar = 100kPa
+        envMsg.temperature = float((self.__sense.get_temperature_from_humidity() + self.__sense.get_temperature_from_pressure()) / 2)
+        envMsg.relative_humidity = float(self.__sense.get_humidity() / 100.0)# normalized percentage
+        envMsg.pressure = float(self.__sense.get_pressure())# * 100.0# mbar to Pa, 1bar = 100kPa
 
-        self.envPublisher_.publish(envMsg)
+        self.__envPublisher.publish(envMsg)
         self.get_logger().info('Publishing: ENV %fC, %f%%rH, %fmbar' %(envMsg.temperature, envMsg.relative_humidity, envMsg.pressure))
 
 

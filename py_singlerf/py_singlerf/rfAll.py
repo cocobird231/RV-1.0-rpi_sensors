@@ -57,7 +57,7 @@ class Params(GenericParams):
         self.RF_channel = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_channel').get_parameter_value())
         self.RF_dataRate = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_dataRate').get_parameter_value())
 
-class WheelStateSubscriber(GenericParams):# Send mode
+class SingleRFSubscriber(GenericParams):# Send mode
     def __init__(self, params):
         super().__init__(params)
 
@@ -78,13 +78,26 @@ class WheelStateSubscriber(GenericParams):# Send mode
         # Display the content of NRF24L01 device registers.
         self.nrf.show_registers()
 
-        self.subscription_ = self.create_subscription(
-            WheelState,
-            params.topic_RFCommSend_topicName,
-            self.listener_callback,
-            10)
-        self.subscription_  # prevent unused variable warning
+        self.addQoSCallbackFunc(self.__qosCallback)
+        prof = self.addQoSTracking(params.topic_RFCommSend_topicName)
+        if (prof != None):
+            self.__subscription = self.create_subscription(
+                WheelState,
+                params.topic_RFCommSend_topicName,
+                self.listener_callback,
+                prof)
+        else:
+            self.__subscription = self.create_subscription(
+                WheelState,
+                params.topic_RFCommSend_topicName,
+                self.listener_callback,
+                10)
 
+    def __qosCallback(self):
+        self.get_logger().info('[SingleRFSubscriber.__qosCallback] Get qmap size: %d' %len(qmap))
+        for topic in qmap:
+            self.get_logger().info('[SingleRFSubscriber.__qosCallback] Get qmap[%s]' %topic)
+    
     def listener_callback(self, msg):
         payload = struct.pack("<BBllllBB", self.protocol, int(msg.gear), int(msg.steering), int(msg.pedal_throttle), int(msg.pedal_brake), int(msg.pedal_clutch), \
                                             int(msg.button), int(msg.func))
@@ -106,7 +119,7 @@ class WheelStateSubscriber(GenericParams):# Send mode
             %(msg.gear, msg.steering, msg.pedal_throttle, msg.pedal_brake, msg.pedal_clutch, \
                 msg.button, msg.func))
 
-class WheelStatePublisher(GenericParams):# Recv mode
+class SingleRFPublisher(GenericParams):# Recv mode
     def __init__(self, params):
         super().__init__(params)
         self.params_ = params
@@ -125,9 +138,20 @@ class WheelStatePublisher(GenericParams):# Recv mode
         self.nrf.open_reading_pipe(RF24_RX_ADDR.P1, self.address)
         self.nrf.show_registers()
 
-        self.frame_id_ = 0
-        self.publisher_ = self.create_publisher(WheelState, params.topic_RFCommRecv_topicName, 10)
+        self.addQoSCallbackFunc(self.__qosCallback)
+        prof = self.addQoSTracking(params.topic_RFCommRecv_topicName)
+        if (prof != None):
+            self.__publisher = self.create_publisher(WheelState, params.topic_RFCommRecv_topicName, prof)
+        else:
+            self.__publisher = self.create_publisher(WheelState, params.topic_RFCommRecv_topicName, 10)
+
+        self.__frame_id = 0
         self.runRFRecv()
+    
+    def __qosCallback(self):
+        self.get_logger().info('[SingleRFPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
+        for topic in qmap:
+            self.get_logger().info('[SingleRFPublisher.__qosCallback] Get qmap[%s]' %topic)
     
     def checkLong(self, val):
         return (1, val) if (-32768 <= val <= 32767) else (0, 0)
@@ -168,14 +192,14 @@ class WheelStatePublisher(GenericParams):# Recv mode
                         msg.header.priority = msg.header.PRIORITY_CONTROL
                         msg.header.device_type = msg.header.DEVTYPE_RF
                         msg.header.device_id = self.params_.nodeName
-                        msg.header.frame_id = self.frame_id_
-                        self.frame_id_ += 1
+                        msg.header.frame_id = self.__frame_id
+                        self.__frame_id += 1
                         msg.header.stamp_type = self.getTimestampType()
                         msg.header.stamp = self.getTimestamp().to_msg()
                         msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
                         msg.header.ref_publish_time_ms = 0
 
-                        self.publisher_.publish(msg)
+                        self.__publisher.publish(msg)
                         self.get_logger().info('Publishing: %03d | %05d %05d %05d %05d | %03d %03d' \
                             %(msg.gear, msg.steering, msg.pedal_throttle, msg.pedal_brake, msg.pedal_clutch, \
                             msg.button, msg.func))
@@ -188,7 +212,7 @@ class WheelStatePublisher(GenericParams):# Recv mode
 
 
 def main_send(params):
-    wsSub = WheelStateSubscriber(params)
+    wsSub = SingleRFSubscriber(params)
     executor = rclpy.executors.MultiThreadedExecutor()
     executor.add_node(wsSub)
     executorTH = threading.Thread(target=executor.spin, daemon=True)
@@ -196,7 +220,7 @@ def main_send(params):
     executorTH.join()
 
 def main_recv(params):
-    wsPub = WheelStatePublisher(params)
+    wsPub = SingleRFPublisher(params)
     executor = rclpy.executors.MultiThreadedExecutor()
     executor.add_node(wsPub)
     executorTH = threading.Thread(target=executor.spin, daemon=True)

@@ -61,6 +61,23 @@ class RGBImagePublisher : public vehicle_interfaces::VehicleServiceNode
 private:
     std::shared_ptr<Params> params_;
     rclcpp::Publisher<vehicle_interfaces::msg::Image>::SharedPtr pub_;
+    std::mutex pubLock_;
+
+private:
+    void _qosCallback(std::map<std::string, rclcpp::QoS*> qmap)
+    {
+        std::unique_lock<std::mutex> locker(this->pubLock_, std::defer_lock);
+        for (const auto& [k, v] : qmap)
+        {
+            if (k == this->params_->topic_Webcam_topicName || k == (std::string)this->get_namespace() + "/" + this->params_->topic_Webcam_topicName)
+            {
+                locker.lock();
+                this->pub_.reset();// Call destructor
+                this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(this->params_->topic_Webcam_topicName, *v);
+                locker.unlock();
+            }
+        }
+    }
 
 public:
     RGBImagePublisher(const std::shared_ptr<Params>& params) : 
@@ -68,7 +85,16 @@ public:
         rclcpp::Node(params->nodeName), 
         params_(params)
     {
-        this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, 10);
+        this->addQoSCallbackFunc(std::bind(&RGBImagePublisher::_qosCallback, this, std::placeholders::_1));
+        vehicle_interfaces::QoSPair qpair = this->addQoSTracking(params->topic_Webcam_topicName);
+        if (qpair.first == "")
+            RCLCPP_ERROR(this->get_logger(), "[RGBImagePublisher] Failed to add topic to track list: %s", params->topic_Webcam_topicName);
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "[RGBImagePublisher] QoS profile [%s]:\nDepth: %d\nReliability: %d", 
+                qpair.first.c_str(), qpair.second->get_rmw_qos_profile().depth, qpair.second->get_rmw_qos_profile().reliability);
+        }
+        this->pub_ = this->create_publisher<vehicle_interfaces::msg::Image>(params->topic_Webcam_topicName, *qpair.second);
     }
 
     void pubImage(const std::vector<uchar>& dataVec, const cv::Size& sz)
@@ -88,7 +114,11 @@ public:
         msg.width = sz.width;
         msg.height = sz.height;
         msg.data = dataVec;
+        
+        std::unique_lock<std::mutex> locker(this->pubLock_, std::defer_lock);
+        locker.lock();
         this->pub_->publish(msg);
+        locker.unlock();
     }
 };
 
