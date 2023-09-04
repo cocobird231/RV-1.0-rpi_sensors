@@ -64,7 +64,7 @@ class UltraSoundPublisher(VehicleServiceNode):
 
         self.distLock = threading.Lock()
 
-    def __qosCallback(self):
+    def __qosCallback(self, qmap):
         self.get_logger().info('[UltraSoundPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
             self.get_logger().info('[UltraSoundPublisher.__qosCallback] Get qmap[%s]' %topic)

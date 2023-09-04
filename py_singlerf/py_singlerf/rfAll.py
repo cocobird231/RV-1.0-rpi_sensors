@@ -93,7 +93,7 @@ class SingleRFSubscriber(GenericParams):# Send mode
                 self.listener_callback,
                 10)
 
-    def __qosCallback(self):
+    def __qosCallback(self, qmap):
         self.get_logger().info('[SingleRFSubscriber.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
             self.get_logger().info('[SingleRFSubscriber.__qosCallback] Get qmap[%s]' %topic)
@@ -148,7 +148,7 @@ class SingleRFPublisher(GenericParams):# Recv mode
         self.__frame_id = 0
         self.runRFRecv()
     
-    def __qosCallback(self):
+    def __qosCallback(self, qmap):
         self.get_logger().info('[SingleRFPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
             self.get_logger().info('[SingleRFPublisher.__qosCallback] Get qmap[%s]' %topic)

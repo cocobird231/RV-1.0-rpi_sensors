@@ -75,7 +75,7 @@ class SensePublisher(VehicleServiceNode):
         self.__imuTimer = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
         self.__envTimer = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
 
-    def __qosCallback(self):
+    def __qosCallback(self, qmap):
         self.get_logger().info('[SensePublisher.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
             self.get_logger().info('[SensePublisher.__qosCallback] Get qmap[%s]' %topic)

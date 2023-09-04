@@ -90,7 +90,7 @@ class GPSPublisher(VehicleServiceNode):
     def __del__(self):
         self.ntripCliTh.join()
     
-    def __qosCallback(self):
+    def __qosCallback(self, qmap):
         self.get_logger().info('[GPSPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
             self.get_logger().info('[GPSPublisher.__qosCallback] Get qmap[%s]' %topic)
