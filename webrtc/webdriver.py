@@ -5,6 +5,7 @@ import http.server
 from http.server import SimpleHTTPRequestHandler
 
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
 import threading
 import time
@@ -35,10 +36,11 @@ def start_server(port):
 def openWebDriver(url):
     try:
         print('[openWebDriver]: url: %s' %url)
+        service = Service(executable_path = "/usr/bin/chromedriver")
         options = webdriver.ChromeOptions()
         #options.add_argument('--headless')
         options.add_argument('--use-fake-ui-for-media-stream')
-        browser = webdriver.Chrome(options = options)
+        browser = webdriver.Chrome(service=service, options = options)
         browser.set_page_load_timeout(60)
         browser.get(url)
         while (browser):

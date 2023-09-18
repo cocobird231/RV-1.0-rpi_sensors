@@ -18,7 +18,7 @@ fi
 # pwd in target_dir
 
 # Recover webrtc.js if .tmp exist
-if cat webrtc.js &> /dev/null
+if cat webrtc.js.tmp &> /dev/null
 then
     cp webrtc.js.tmp webrtc.js
     echo "webrtc.js recovered"
