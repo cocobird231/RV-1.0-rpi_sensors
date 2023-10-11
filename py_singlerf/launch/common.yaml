@@ -1,4 +1,4 @@
-#ver=1.2
+#ver=1.3
 
 # RF send mode subscribe wheel status from control server then send it via RF
 # RF recv mode receive wheel status via RF then publish to control server
@@ -31,8 +31,9 @@ generic_prop:
     id : 0
 
     # Device information service configuration
-    devInfoService : "" # Service name devinfo_0
+    devInfoService : "devinfo_0" # Service name devinfo_0
     devInterface : "eth0" # eth0
+    devMultiNode : False # False
 
     # QoS service configuration
     qosService : "qos_0" # Service name qos_0

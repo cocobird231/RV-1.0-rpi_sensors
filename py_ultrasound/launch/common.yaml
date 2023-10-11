@@ -1,4 +1,4 @@
-#ver=1.2
+#ver=1.3
 ---
 topic_Ultrasound:
     nodeName : "ultrasound" # Unused
@@ -17,8 +17,9 @@ generic_prop:
     id : 0
 
     # Device information service configuration
-    devInfoService : "" # Service name devinfo_0
+    devInfoService : "devinfo_0" # Service name devinfo_0
     devInterface : "eth0" # eth0
+    devMultiNode : False # False
 
     # QoS service configuration
     qosService : "qos_0" # Service name qos_0

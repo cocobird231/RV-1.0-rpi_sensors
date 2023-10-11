@@ -57,7 +57,7 @@ class Params(GenericParams):
         self.RF_channel = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_channel').get_parameter_value())
         self.RF_dataRate = rclpy.parameter.parameter_value_to_python(self.get_parameter('RF_dataRate').get_parameter_value())
 
-class SingleRFSubscriber(GenericParams):# Send mode
+class SingleRFSubscriber(VehicleServiceNode):# Send mode
     def __init__(self, params):
         super().__init__(params)
 
@@ -119,7 +119,7 @@ class SingleRFSubscriber(GenericParams):# Send mode
             %(msg.gear, msg.steering, msg.pedal_throttle, msg.pedal_brake, msg.pedal_clutch, \
                 msg.button, msg.func))
 
-class SingleRFPublisher(GenericParams):# Recv mode
+class SingleRFPublisher(VehicleServiceNode):# Recv mode
     def __init__(self, params):
         super().__init__(params)
         self.params_ = params
