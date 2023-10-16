@@ -21,7 +21,7 @@ def generate_launch_description():
             parameters=[
                 {
                     "topic_RFCommSend_nodeName" : data['topic_RFCommSend']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
-                    "topic_RFCommSend_topicName" : data['topic_RFCommSend']['topicName'] + '_' + str(data['generic_prop']['id']), 
+                    "topic_RFCommSend_topicName" : data['topic_RFCommSend']['topicName'], 
                     "topic_RFCommRecv_nodeName" : data['topic_RFCommRecv']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
                     "topic_RFCommRecv_topicName" : data['topic_RFCommRecv']['topicName'], 
                     "topic_RFCommRecv_pubInterval_s" : data['topic_RFCommRecv']['publishInterval_s'], 

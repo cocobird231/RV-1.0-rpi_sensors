@@ -19,10 +19,10 @@ from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
-        self.topic_RFCommSend_nodeName = 'rfcommsend_subscriber_node'
-        self.topic_RFCommSend_topicName = 'topic_RFCommSend'
-        self.topic_RFCommRecv_nodeName = 'rfcommrecv_publisher_node'
-        self.topic_RFCommRecv_topicName = 'topic_RFCommRecv'
+        self.topic_RFCommSend_nodeName = 'rfcomm_send_0_node'
+        self.topic_RFCommSend_topicName = 'rfcomm_send_0'
+        self.topic_RFCommRecv_nodeName = 'rfcomm_recv_0_node'
+        self.topic_RFCommRecv_topicName = 'rfcomm_recv_0'
         self.topic_RFCommRecv_pubInterval_s = 0.1
 
         self.RF_operationMode = 'send'

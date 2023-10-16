@@ -24,8 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'sender = py_singlerf.rfsend:main', 
-            'receiver = py_singlerf.rfrecv:main', 
+            'send = py_singlerf.rfAll:main_send', 
+            'recv = py_singlerf.rfAll:main_recv', 
             'pub = py_singlerf.rfAll:main'
         ],
     },

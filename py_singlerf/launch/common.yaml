@@ -1,7 +1,7 @@
 #ver=1.3
 
-# RF send mode subscribe wheel status from control server then send it via RF
-# RF recv mode receive wheel status via RF then publish to control server
+# RF send mode subscribes wheel status from topic then send it via RF
+# RF recv mode receives wheel status via RF then publish to topic
 ---
 RF_prop:
     operationMode : "send" # send, recv
@@ -11,12 +11,12 @@ RF_prop:
     dataRate : 250 # kbps (unuse)
 
 topic_RFCommSend: # Used if send mode
-    nodeName : "rfcommsend" # Automatically formed to "<nodeName>_<id>_node"
-    topicName : "rfcomm" # The _id number will added in suffix, i.e. "<topicName>_<id>"
+    nodeName : "rfcomm_send" # Automatically formed to "<nodeName>_<id>_node"
+    topicName : "rfcomm_send_0" # ID suffix required
 
 topic_RFCommRecv: # Used if recv mode
-    nodeName : "rfcommrecv" # Automatically formed to "<nodeName>_<id>_node"
-    topicName : "rfcomm_1" # ID suffix required
+    nodeName : "rfcomm_recv" # Automatically formed to "<nodeName>_<id>_node"
+    topicName : "rfcomm_recv_0" # ID suffix required
     publishInterval_s : 0.1 # Unuse
 
 # Settings for Params class under vehicle_interfaces/params.h
