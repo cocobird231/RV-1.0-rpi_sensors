@@ -197,7 +197,7 @@ class SingleRFPublisher(VehicleServiceNode):# Recv mode
                         msg.header.stamp_type = self.getTimestampType()
                         msg.header.stamp = self.getTimestamp().to_msg()
                         msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
-                        msg.header.ref_publish_time_ms = 0
+                        msg.header.ref_publish_time_ms = 0.0
 
                         self.__publisher.publish(msg)
                         self.get_logger().info('Publishing: %03d | %05d %05d %05d %05d | %03d %03d' \

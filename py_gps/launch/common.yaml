@@ -3,7 +3,7 @@
 topic_GPS:
     nodeName : "gps" # Unused
     topicName : "gps" # The _id number will added in suffix, i.e. "<topicName>_<id>"
-    publishInterval_s : 0.5
+    publishInterval_s : 0.2 # Maximum: 5Hz (0.2s)
 
 GPS_prop:
     module : "ZED-F9P" # "M8Q" or "ZED-F9P"
