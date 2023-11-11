@@ -17,7 +17,7 @@ class Params(GenericParams):
         super().__init__(nodeName)
         self.topic_GPS_nodeName = 'gps_publisher_node'
         self.topic_GPS_topicName = 'topic_GPS'
-        self.topic_GPS_pubInterval_s = 0.5
+        self.topic_GPS_pubInterval_s = 0.2
 
         self.module = 'ZED-F9P'
         self.caster = ''
