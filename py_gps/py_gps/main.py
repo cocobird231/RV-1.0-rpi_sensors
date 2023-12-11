@@ -8,8 +8,8 @@ from vehicle_interfaces.params import GenericParams
 from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
 from gps3.agps3threaded import AGPS3mechanism
-from ntripClient import NtripClient
-import ntripClient
+from ntripClient2 import NtripClient
+import ntripClient2
 
 
 class Params(GenericParams):
@@ -20,6 +20,8 @@ class Params(GenericParams):
         self.topic_GPS_pubInterval_s = 0.2
 
         self.module = 'ZED-F9P'
+        self.device = '/dev/ttyS0'
+        self.baud_dec = 38400
         self.caster = ''
         self.port = 2101
         self.mountpoint = ''
@@ -31,6 +33,8 @@ class Params(GenericParams):
         self.declare_parameter('topic_GPS_pubInterval_s', self.topic_GPS_pubInterval_s)
 
         self.declare_parameter('module', self.module)
+        self.declare_parameter('device', self.device)
+        self.declare_parameter('baud_dec', self.baud_dec)
         self.declare_parameter('caster', self.caster)
         self.declare_parameter('port', self.port)
         self.declare_parameter('mountpoint', self.mountpoint)
@@ -44,6 +48,8 @@ class Params(GenericParams):
         self.topic_GPS_pubInterval_s = rclpy.parameter.parameter_value_to_python(self.get_parameter('topic_GPS_pubInterval_s').get_parameter_value())
 
         self.module = rclpy.parameter.parameter_value_to_python(self.get_parameter('module').get_parameter_value())
+        self.device = rclpy.parameter.parameter_value_to_python(self.get_parameter('device').get_parameter_value())
+        self.baud_dec = rclpy.parameter.parameter_value_to_python(self.get_parameter('baud_dec').get_parameter_value())
         self.caster = rclpy.parameter.parameter_value_to_python(self.get_parameter('caster').get_parameter_value())
         self.port = rclpy.parameter.parameter_value_to_python(self.get_parameter('port').get_parameter_value())
         self.mountpoint = rclpy.parameter.parameter_value_to_python(self.get_parameter('mountpoint').get_parameter_value())
@@ -58,13 +64,13 @@ class GPSPublisher(VehicleServiceNode):
         self.__params = params
 
         self.addQoSCallbackFunc(self.__qosCallback)
-        
+
         prof = self.addQoSTracking(params.topic_GPS_topicName)
         if (prof != None):
             self.__publisher = self.create_publisher(GPS, params.topic_GPS_topicName, prof)
         else:
             self.__publisher = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
-        
+
         self.__frame_id = 0
         self.__timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
 
@@ -75,6 +81,8 @@ class GPSPublisher(VehicleServiceNode):
             self.gpsThread.stream_data()
             self.gpsThread.run_thread()
         elif (self.__module == 'ZED-F9P'):
+            '''
+            # Old method
             ntripArgs = {}
             ntripArgs['user'] = params.username + ":" + params.password
             ntripArgs['caster'] = params.caster
@@ -86,10 +94,16 @@ class GPSPublisher(VehicleServiceNode):
             self.ntripCli = NtripClient(**ntripArgs)
             self.ntripCliTh = threading.Thread(target=self.ntripCli.readData, daemon=True)
             self.ntripCliTh.start()
-    
+            '''
+            self.__gps = NtripClient(params.device, int(params.baud_dec), params.caster, int(params.port), params.mountpoint, params.username + ":" + params.password)
+
     def __del__(self):
+        '''
+        # Old method
         self.ntripCliTh.join()
-    
+        '''
+        self.__gps.close()
+
     def __qosCallback(self, qmap):
         self.get_logger().info('[GPSPublisher.__qosCallback] Get qmap size: %d' %len(qmap))
         for topic in qmap:
@@ -120,9 +134,9 @@ class GPSPublisher(VehicleServiceNode):
                 # speed = self.gpsThread.data_stream.speed
                 # track = self.gpsThread.data_stream.track
         elif (self.__module == 'ZED-F9P'):
-            ntripClient.ros2DictLock.acquire()
-            tmp = ntripClient.gpsDict
-            ntripClient.ros2DictLock.release()
+            ntripClient2.ros2DictLock.acquire()
+            tmp = ntripClient2.gpsDict
+            ntripClient2.ros2DictLock.release()
             try:
                 msg.gps_status = int(tmp['status'])
                 msg.latitude = float(tmp['lat'])

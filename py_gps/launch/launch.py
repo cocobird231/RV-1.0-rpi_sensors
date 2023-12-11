@@ -32,6 +32,8 @@ def generate_launch_description():
                     "topic_GPS_topicName" : data['topic_GPS']['topicName'] + '_' + str(data['generic_prop']['id']), 
                     "topic_GPS_pubInterval_s" : data['topic_GPS']['publishInterval_s'], 
                     "module" : data['GPS_prop']['module'], 
+                    "device" : data['GPS_prop']['device'], 
+                    "baud_dec" : data['GPS_prop']['baud_dec'], 
                     "caster" : data['GPS_prop']['caster'], 
                     "port" : data['GPS_prop']['port'], 
                     "mountpoint" : data['GPS_prop']['mountpoint'], 
