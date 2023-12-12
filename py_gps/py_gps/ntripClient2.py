@@ -120,6 +120,8 @@ class NtripClient(object):
                     # Send NMEA to ntrip server and recv RTCM.
                     # Send RTCM to gnss module.
                     # ntripSock set to None if send or recv error.
+
+                    closeSockF = False
                     try:
                         ntripSock.sendall(self.__currentGGA)
                         recvRTCM = ntripSock.recv(self.__buffSize)
@@ -127,10 +129,16 @@ class NtripClient(object):
                         prePos = self.__currentGGA
                     except Exception:
                         print('Ntrip socket send or recv error.')
-                        if (ntripSock):
+                        closeSockF = True
+
+                    if (closeSockF and ntripSock):
+                        try:
                             ntripSock.shutdown(socket.SHUT_RDWR)
                             ntripSock.close()
-                            ntripSock = None
+                        except Exception:
+                            ntripSock.close()
+                        ntripSock = None
+
 
             time.sleep(1)
 
