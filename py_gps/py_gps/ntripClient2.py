@@ -101,14 +101,14 @@ class NtripClient(object):
 
                     # Socket return failed
                     else:
-                        print('Socket error:' + ret)
+                        print('Socket error:', ret)
                         if (ntripSock):
                             ntripSock.shutdown(socket.SHUT_RDWR)
                             ntripSock.close()
                             ntripSock = None
 
                 except Exception as e:
-                    print('\nException' + e)
+                    print('\nException', e)
                     if (ntripSock):
                         ntripSock.shutdown(socket.SHUT_RDWR)
                         ntripSock.close()
