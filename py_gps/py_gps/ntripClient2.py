@@ -36,24 +36,30 @@ class NtripClient(object):
         self.__mountpoint = mountpoint if (len(mountpoint) > 0 and mountpoint[0] == '/') else '/' + mountpoint
         self.__user = base64.b64encode(bytes(user,'utf-8')).decode("utf-8")
         self.__v2 = useV2
+        self.__ntripSock = None
+        self.__ntripSockErrF = False
+        self.__ntripSockErrHandleF = False
 
         # GNSS
         self.__gnssStream = serial.Serial(device, baud, timeout=3)
         self.__nmeaReader = NMEAReader(self.__gnssStream)
         self.__stopF = False
 
-        self.__buffSize = 50
+        self.__buffSize = 2048
         self.__currentGGA = None# Byte arr of GNGGA data
 
         # Run threads
         self.__gnssTh = threading.Thread(target=self.__getNMEA, daemon=True)
         self.__gnssTh.start()
-        self.__ntripTh = threading.Thread(target=self.__getRTCM, daemon=True)
-        self.__ntripTh.start()
+        self.__ntripRecvTh = threading.Thread(target=self.__getRTCM, daemon=True)
+        self.__ntripRecvTh.start()
+        self.__ntripSendTh = threading.Thread(target=self.__sendNMEA, daemon=True)
+        self.__ntripSendTh.start()
     
     def __del__(self):
         self.__stopF = True
-        self.__ntripTh.join()
+        self.__ntripSendTh.join()
+        self.__ntripRecvTh.join()
         self.__gnssTh.join()
 
     def __getRTCM(self):
@@ -64,24 +70,23 @@ class NtripClient(object):
         print(httpGetStr)
         httpGetBStr = bytes(httpGetStr, 'ascii')
 
-        ntripSock = None
-        prePos = None# Char array of GNGGA data
+        self.__ntripSock = None
 
         while (not self.__stopF):
             # Establish ntrip conn
-            if (ntripSock == None):
+            if (self.__ntripSock == None):
                 # Create socket
                 try:
-                    ntripSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    ret = ntripSock.connect_ex((self.__caster, self.__port))
+                    self.__ntripSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    ret = self.__ntripSock.connect_ex((self.__caster, self.__port))
 
                     # Socket return succeed
                     if (ret == 0):
                         print(ret)
-                        ntripSock.settimeout(5)
-                        ntripSock.sendall(httpGetBStr)
+                        self.__ntripSock.settimeout(5)
+                        self.__ntripSock.sendall(httpGetBStr)
 
-                        casterResBStr = ntripSock.recv(4096) #All the data
+                        casterResBStr = self.__ntripSock.recv(4096)
                         casterResStrList = casterResBStr.decode('ascii').split("\r\n")
                         print(casterResStrList)
 
@@ -94,59 +99,68 @@ class NtripClient(object):
                             elif (i == 'SOURCETABLE 200 OK'):
                                 print('Mountpoint not found.')
 
-                        if (not connF and ntripSock):
-                            ntripSock.shutdown(socket.SHUT_RDWR)
-                            ntripSock.close()
-                            ntripSock = None
+                        if (connF):
+                            self.__ntripSockErrF = False
+                            self.__ntripSockErrHandleF = False
+                        else:
+                            self.__ntripSockErrF = True
 
                     # Socket return failed
                     else:
                         print('Socket error:', ret)
-                        if (ntripSock):
-                            ntripSock.shutdown(socket.SHUT_RDWR)
-                            ntripSock.close()
-                            ntripSock = None
+                        self.__ntripSockErrF = True
 
                 except Exception as e:
                     print('\nException', e)
-                    if (ntripSock):
-                        ntripSock.shutdown(socket.SHUT_RDWR)
-                        ntripSock.close()
-                        ntripSock = None
-            
+                    self.__ntripSockErrF = True
+
             # Ntrip working
             else:
-                if (prePos != self.__currentGGA):
-                    # Send NMEA to ntrip server and recv RTCM.
-                    # Send RTCM to gnss module.
-                    # ntripSock set to None if send or recv error.
+                try:
+                    # Socket recv RTCM and send RTCM to gnss module.
+                    recvRTCM = self.__ntripSock.recv(self.__buffSize)
+                    print('Ntrip socket recv', len(recvRTCM), 'bytes.')
+                    self.__gnssStream.write(recvRTCM)
+                    prePos = self.__currentGGA
+                except Exception:
+                    print('Ntrip socket recv error.')
+                    self.__ntripSockErrF = True
 
-                    closeSockF = False
+            # Socket error process.
+            if (self.__ntripSockErrF and not self.__ntripSockErrHandleF):
+                self.__ntripSockErrHandleF = True
+                if (self.__ntripSock):
                     try:
-                        ntripSock.sendall(self.__currentGGA)
-                        recvRTCM = ntripSock.recv(self.__buffSize)
-                        self.__gnssStream.write(recvRTCM)
-                        prePos = self.__currentGGA
+                        self.__ntripSock.shutdown(socket.SHUT_RDWR)
+                        self.__ntripSock.close()
                     except Exception:
-                        print('Ntrip socket send or recv error.')
-                        closeSockF = True
+                        self.__ntripSock.close()
+                    self.__ntripSock = None
+                self.__ntripSockErrHandleF = False
 
-                    if (closeSockF and ntripSock):
-                        try:
-                            ntripSock.shutdown(socket.SHUT_RDWR)
-                            ntripSock.close()
-                        except Exception:
-                            ntripSock.close()
-                        ntripSock = None
-
-
-            time.sleep(1)
+            time.sleep(0.01)
 
         # Outside loop. Clear socket and return.
-        if (ntripSock):
-            ntripSock.shutdown(socket.SHUT_RDWR)
-            ntripSock.close()
-            ntripSock = None
+        if (self.__ntripSock):
+            self.__ntripSock.shutdown(socket.SHUT_RDWR)
+            self.__ntripSock.close()
+            self.__ntripSock = None
+    
+    def __sendNMEA(self):
+        # Send NMEA to ntrip server and recv RTCM.
+        # Send RTCM to gnss module.
+
+        prePos = None# Byte arr of GNGGA data
+        while (not self.__stopF):
+            try:
+                if (self.__ntripSock):
+                    if (prePos != self.__currentGGA):
+                        self.__ntripSock.sendall(self.__currentGGA)
+                        prePos = self.__currentGGA
+            except:
+                print('Ntrip socket send error.')
+                self.__ntripSockErrF = True
+            time.sleep(5)
 
     def __getNMEA(self):
         while (not self.__stopF):
@@ -191,7 +205,7 @@ class NtripClient(object):
             except Exception:
                 print('Read GNGGA error')
             
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         if (self.__gnssStream):
             self.__gnssStream.close()

@@ -9,9 +9,9 @@ GPS_prop:
     module : "ZED-F9P" # "M8Q" or "ZED-F9P"
     device : "/dev/ttyS0"
     baud_dec : 38400
-    caster : "rtk2go.com" # For hk: "landsd-gncaster.realtime.data.gov.hk"
+    caster : "61.220.23.236" # "rtk2go.com"
     port : 2101
-    mountpoint : "/NCKU-meclab" # For rtk2go: "/BX4ACP", "/Navi-test", "/geec01", "/taitung_agri". For hk: "/T430_32"
+    mountpoint : "/MIRDC01" # For rtk2go: "/BX4ACP", "/Navi-test", "/geec01", "/taitung_agri"
     username : "123@gmail.com" # Not necessary
     password : "none" # Not necessary
 
