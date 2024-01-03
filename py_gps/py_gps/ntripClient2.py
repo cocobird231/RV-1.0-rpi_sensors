@@ -11,7 +11,7 @@ from pynmeagps import NMEAReader
 version=0.1
 useragent="NTRIP MIRDCRVTestClient/%.1f" % version
 
-gpsDict = { 'status' : 0, 'lat' : 0, 'lon' : 0, 'alt' : 0 }
+gpsDict = { 'unit' : 0, 'status' : 0, 'lat' : 0, 'lon' : 0, 'alt' : 0 }
 ros2DictLock = threading.Lock()
 
 '''
@@ -187,8 +187,8 @@ class NtripClient(object):
                                     <Differential time>, 
                                     <Differential reference base station label and check value>
                         '''
-                        lat = float(contentList[2][:2]) + float(contentList[2][2:]) / 60# DMM to DD
-                        lon = float(contentList[4][:3]) + float(contentList[4][3:]) / 60# DMM to DD
+                        lat = float(contentList[2])# float(contentList[2][:2]) + float(contentList[2][2:]) / 60# DMM to DD
+                        lon = float(contentList[4])# float(contentList[4][:3]) + float(contentList[4][3:]) / 60# DMM to DD
                         if (contentList[3] == 'S') : lat = -lat
                         if (contentList[5] == 'W') : lon = -lon
                         

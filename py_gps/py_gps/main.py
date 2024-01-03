@@ -138,6 +138,7 @@ class GPSPublisher(VehicleServiceNode):
             tmp = ntripClient2.gpsDict
             ntripClient2.ros2DictLock.release()
             try:
+                msg.unit_type = int(tmp['unit'])
                 msg.gps_status = int(tmp['status'])
                 msg.latitude = float(tmp['lat'])
                 msg.longitude = float(tmp['lon'])
