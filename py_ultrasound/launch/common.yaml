@@ -5,6 +5,10 @@ topic_Ultrasound:
     topicName : "ultrasound" # The _id number will added in suffix, i.e. "<topicName>_<id>"
     publishInterval_s : 0.1 #primary
 
+ultrasound_setting:
+    quantity : 1
+    maxRange_m : 5.0
+
 # Settings for Params class under vehicle_interfaces/params.h
 generic_prop:
     # Node name and namespace. The namespace will automatically adding prefix at node name, topic name, service name, etc..

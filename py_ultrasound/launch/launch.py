@@ -31,6 +31,8 @@ def generate_launch_description():
                     "topic_Ultrasound_nodeName" : data['topic_Ultrasound']['nodeName'] + '_' + str(data['generic_prop']['id']) + '_node', 
                     "topic_Ultrasound_topicName" : data['topic_Ultrasound']['topicName'] + '_' + str(data['generic_prop']['id']), 
                     "topic_Ultrasound_pubInterval_s" : data['topic_Ultrasound']['publishInterval_s'], 
+                    "quantity" : data['ultrasound_setting']['quantity'], 
+                    "maxRange_m" : data['ultrasound_setting']['maxRange_m'], 
 
                     # Settings for Params class under vehicle_interfaces/params.h
                     # Do not change the settings rashly
