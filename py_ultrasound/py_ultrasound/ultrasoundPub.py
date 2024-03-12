@@ -10,24 +10,21 @@ from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
-        self.topic_Ultrasound_nodeName = 'ultrasound_publisher_node'
-        self.topic_Ultrasound_topicName = 'topic_Ultrasound'
-        self.topic_Ultrasound_pubInterval_s = 0.1
-        self.quantity = 1
+        self.topicIds = [0.0, 1.0, 2.0]
+        self.topicName = 'ultrasound_0'
+        self.pubInterval_s = 0.1
         self.maxRange_m = 5.0
 
-        self.declare_parameter('topic_Ultrasound_nodeName', self.topic_Ultrasound_nodeName)
-        self.declare_parameter('topic_Ultrasound_topicName', self.topic_Ultrasound_topicName)
-        self.declare_parameter('topic_Ultrasound_pubInterval_s', self.topic_Ultrasound_pubInterval_s)
-        self.declare_parameter('quantity', self.quantity)
+        self.declare_parameter('topicIds', self.topicIds)
+        self.declare_parameter('topicName', self.topicName)
+        self.declare_parameter('pubInterval_s', self.pubInterval_s)
         self.declare_parameter('maxRange_m', self.maxRange_m)
         self._getParam()
 
     def _getParam(self):
-        self.topic_Ultrasound_nodeName = self.get_parameter('topic_Ultrasound_nodeName').get_parameter_value().string_value
-        self.topic_Ultrasound_topicName = self.get_parameter('topic_Ultrasound_topicName').get_parameter_value().string_value
-        self.topic_Ultrasound_pubInterval_s = self.get_parameter('topic_Ultrasound_pubInterval_s').get_parameter_value().double_value
-        self.quantity = self.get_parameter('quantity').get_parameter_value().integer_value
+        self.topicIds = self.get_parameter('topicIds').get_parameter_value().double_array_value
+        self.topicName = self.get_parameter('topicName').get_parameter_value().string_value
+        self.pubInterval_s = self.get_parameter('pubInterval_s').get_parameter_value().double_value
         self.maxRange_m = self.get_parameter('maxRange_m').get_parameter_value().double_value
 
 
@@ -36,17 +33,21 @@ class UltraSoundPublisher(VehicleServiceNode):
     def __init__(self, params : Params):
         super().__init__(params)
         self.__params = params
-
+        self.__quantity = len(params.topicIds)# Quantity of used ultrasound sensors.
+        self.__timeout_s = params.maxRange_m * 2 / 343.2# Max distance = 0.03 * 343.2 / 2 ~= 5m
+        self.__pubList = []
         self.addQoSCallbackFunc(self.__qosCbFunc)
 
-        prof = self.addQoSTracking(params.topic_Ultrasound_topicName)
-        if (prof != None):
-            self.__publisher = self.create_publisher(Distance, params.topic_Ultrasound_topicName, prof)
-        else:
-            self.__publisher = self.create_publisher(Distance, params.topic_Ultrasound_topicName, 10)
+        for id in params.topicIds:
+            tName = params.topicName + "_" + str(int(id))
+            prof = self.addQoSTracking(tName)
+            if (prof != None):
+                self.__pubList.append(self.create_publisher(Distance, tName, prof))
+            else:
+                self.__pubList.append(self.create_publisher(Distance, tName, 10))
 
         self.__frame_id = 0
-        self.__timer = self.create_timer(params.topic_Ultrasound_pubInterval_s, self.__timerCbFunc)
+        self.__timer = self.create_timer(params.pubInterval_s, self.__timerCbFunc)
 
         self.__GPIO_TRIGGER1 = 17# Left ultrasound trigger
         self.__GPIO_TRIGGER2 = 27# Mid ultrasound trigger
@@ -63,9 +64,6 @@ class UltraSoundPublisher(VehicleServiceNode):
         GPIO.setup(self.__GPIO_ECHO1, GPIO.IN)#set GPIO direction (IN / OUT)
         GPIO.setup(self.__GPIO_ECHO2, GPIO.IN)#set GPIO direction (IN / OUT)
         GPIO.setup(self.__GPIO_ECHO3, GPIO.IN)#set GPIO direction (IN / OUT)
-        
-        self.__quantity = 1# Quantity of used ultrasound sensors.
-        self.__timeout_s = params.maxRange_m * 2 / 343.2# Max distance = 0.03 * 343.2 / 2 ~= 5m
 
         self.__d1 = 10000.0
         self.__d2 = 10000.0
@@ -83,10 +81,7 @@ class UltraSoundPublisher(VehicleServiceNode):
         msg.header.device_id = self.__params.nodeName
         msg.header.frame_id = self.__frame_id
         self.__frame_id += 1
-        msg.header.stamp_type = self.getTimestampType()
-        msg.header.stamp = self.getTimestamp().to_msg()
-        msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
-        msg.header.ref_publish_time_ms = self.__params.topic_Ultrasound_pubInterval_s * 1000.0
+        msg.header.ref_publish_time_ms = self.__params.pubInterval_s * 1000.0
 
         msg.unit_type = msg.UNIT_METER
 
@@ -95,15 +90,27 @@ class UltraSoundPublisher(VehicleServiceNode):
 
         if (self.__quantity >= 1):
             self.__getDistance(1, self.__GPIO_TRIGGER1, self.__GPIO_ECHO1)
+            msg.distance = self.__d1
+            msg.header.stamp_type = self.getTimestampType()
+            msg.header.stamp = self.getTimestamp().to_msg()
+            msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+            self.__pubList[0].publish(msg)
         if (self.__quantity >= 2):
             self.__getDistance(2, self.__GPIO_TRIGGER2, self.__GPIO_ECHO2)
+            msg.distance = self.__d2
+            msg.header.stamp_type = self.getTimestampType()
+            msg.header.stamp = self.getTimestamp().to_msg()
+            msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+            self.__pubList[1].publish(msg)
         if (self.__quantity >= 3):
             self.__getDistance(3, self.__GPIO_TRIGGER3, self.__GPIO_ECHO3)
+            msg.distance = self.__d3
+            msg.header.stamp_type = self.getTimestampType()
+            msg.header.stamp = self.getTimestamp().to_msg()
+            msg.header.stamp_offset = self.getCorrectDuration().nanoseconds
+            self.__pubList[2].publish(msg)
 
-        msg.distance = min(self.__d1, self.__d2, self.__d3)
-
-        self.__publisher.publish(msg)
-        self.get_logger().info('Publishing: %.2f m (%.2f %.2f %.2f)' %(msg.distance, self.__d1, self.__d2, self.__d3))
+        self.get_logger().info('Distance (m): %.2f %.2f %.2f' %(self.__d1, self.__d2, self.__d3))
 
     def __getDistance(self, distNum : int, trigger : int, echo : int):
         GPIO.output(trigger, True)# set Trigger to HIGH
