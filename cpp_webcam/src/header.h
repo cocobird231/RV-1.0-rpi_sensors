@@ -196,7 +196,7 @@ private:
 	float rate_;
 	int frameCnt_;
 	std::chrono::duration<int, std::milli> interval_ms_;
-	vehicle_interfaces::Timer* timer_;
+	std::shared_ptr<vehicle_interfaces::LiteTimer> timer_;
 
 	std::mutex locker_;
 
@@ -229,13 +229,12 @@ public:
 		this->rate_ = 0;
 		this->frameCnt_ = 0;
 		this->interval_ms_ = std::chrono::milliseconds(interval_ms);
-		this->timer_ = new vehicle_interfaces::Timer(interval_ms, std::bind(&WorkingRate::_timerCallback, this));
+		this->timer_ = std::make_shared<vehicle_interfaces::LiteTimer>(interval_ms, std::bind(&WorkingRate::_timerCallback, this));
 	}
 
 	~WorkingRate()
 	{
 		this->timer_->destroy();
-		delete this->timer_;
 	}
 
 	void addCnt(int num) { this->_safeSave(&this->frameCnt_, this->frameCnt_ + num, this->locker_); }
