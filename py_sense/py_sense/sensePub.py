@@ -9,6 +9,8 @@ from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 from sense_hat import SenseHat
 import numpy as np
 
+from vehicle_interfaces.cpplib import make_unique_timer, Timer
+
 # def euler_to_quaternion(yaw, pitch, roll):# XYZ order
 #     qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
 #     qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
@@ -72,8 +74,13 @@ class SensePublisher(VehicleServiceNode):
         self.__sense.set_imu_config(True, True, True)
         self.__imu_frame_id = 0
         self.__env_frame_id = 0
-        self.__imuTimer = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
-        self.__envTimer = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
+        # self.__imuTimer = self.create_timer(params.topic_IMU_pubInterval_s, self.imu_timer_callback)
+        # self.__envTimer = self.create_timer(params.topic_ENV_pubInterval_s, self.env_timer_callback)
+        self.__imuTimer = make_unique_timer(params.topic_IMU_pubInterval_s * 1000.0, self.imu_timer_callback)
+        self.__imuTimer.start()
+
+        self.__envTimer = make_unique_timer(params.topic_ENV_pubInterval_s * 1000.0, self.env_timer_callback)
+        self.__envTimer.start()
 
     def __qosCallback(self, qmap):
         self.get_logger().info('[SensePublisher.__qosCallback] Get qmap size: %d' %len(qmap))

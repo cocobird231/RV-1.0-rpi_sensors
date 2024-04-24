@@ -11,6 +11,7 @@ from gps3.agps3threaded import AGPS3mechanism
 from ntripClient2 import NtripClient
 import ntripClient2
 
+from vehicle_interfaces.cpplib import make_unique_timer, Timer
 
 class Params(GenericParams):
     def __init__(self, nodeName : str):
@@ -72,7 +73,8 @@ class GPSPublisher(VehicleServiceNode):
             self.__publisher = self.create_publisher(GPS, params.topic_GPS_topicName, 10)
 
         self.__frame_id = 0
-        self.__timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
+        # self.__timer = self.create_timer(params.topic_GPS_pubInterval_s, self.timer_callback)
+        self.__timer = make_unique_timer(params.topic_GPS_pubInterval_s * 1000.0, self.timer_callback)
 
         self.__module = params.module
 
@@ -96,6 +98,8 @@ class GPSPublisher(VehicleServiceNode):
             self.ntripCliTh.start()
             '''
             self.__gps = NtripClient(params.device, int(params.baud_dec), params.caster, int(params.port), params.mountpoint, params.username + ":" + params.password)
+
+        self.__timer.start()
 
     def __del__(self):
         '''

@@ -7,6 +7,8 @@ from vehicle_interfaces.msg import Distance
 from vehicle_interfaces.params import GenericParams
 from vehicle_interfaces.vehicle_interfaces import VehicleServiceNode
 
+from vehicle_interfaces.cpplib import make_unique_timer, Timer
+
 class Params(GenericParams):
     def __init__(self, nodeName : str):
         super().__init__(nodeName)
@@ -47,7 +49,9 @@ class UltraSoundPublisher(VehicleServiceNode):
                 self.__pubList.append(self.create_publisher(Distance, tName, 10))
 
         self.__frame_id = 0
-        self.__timer = self.create_timer(params.pubInterval_s, self.__timerCbFunc)
+        # self.__timer = self.create_timer(params.pubInterval_s, self.__timerCbFunc)
+        self.__timer = make_unique_timer(params.pubInterval_s * 1000.0, self.__timerCbFunc)
+        self.__timer.start()
 
         self.__GPIO_TRIGGER1 = 17# Left ultrasound trigger
         self.__GPIO_TRIGGER2 = 27# Mid ultrasound trigger
