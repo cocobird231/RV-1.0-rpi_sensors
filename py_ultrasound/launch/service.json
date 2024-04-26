@@ -1,5 +1,5 @@
 {
-    "devInfoService" : "devinfo_0", 
+    "devInfoService" : "", 
     "devInterface" : "eth0", 
     "devMultiNode" : false, 
 
@@ -8,7 +8,7 @@
 
     "safetyService" : "", 
 
-    "timesyncService" : "timesync_0", 
+    "timesyncService" : "", 
     "timesyncPeriod_ms" : 120000.0, 
     "timesyncAccuracy_ms" : 2.0, 
     "timesyncWaitService" : false
